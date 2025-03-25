@@ -1,0 +1,192 @@
+
+
+---------------------------------------------------------------------
+Processing demo.mp4
+On Monday 17. March 2025, 20:16:16
+---------------------------------------------------------------------
+No ffmpeg exe could be found. Starting time set to 0.0. Error: No ffmpeg exe could be found. Install ffmpeg on your system, or set the IMAGEIO_FFMPEG_EXE environment variable.
+Using HALPE_26 model (body and feet) for pose estimation.
+
+Valid MPS installation found: using ONNXRuntime backend with GPU.
+
+Pose tracking set up for "body_with_feet" model.
+Mode: balanced.
+
+Persons are detected every 4 frames and tracked inbetween. Multi-person is selected. Tracking is done with physiotrack.
+keypoint_likelihood_threshold=0.3, average_likelihood_threshold=0.5, keypoint_number_threshold=0.3
+Skipping right wrist angle computation because at least one of the following keypoints is not provided by the model: ['RElbow', 'RWrist', 'RIndex'].
+Skipping left wrist angle computation because at least one of the following keypoints is not provided by the model: ['LElbow', 'LWrist', 'LIndex'].
+
+Processing video stream...
+Video processing completed.
+Processed video saved to /Users/chandansharma/Desktop/workspace/metashape/projects/dc-pose/dochq/physiotrack/demo_PhysioTrack/demo_PhysioTrack.mp4.
+Processed images saved to /Users/chandansharma/Desktop/workspace/metashape/projects/dc-pose/dochq/physiotrack/demo_PhysioTrack/demo_PhysioTrack_img.
+
+Post-processing pose:
+- Person 0: Interpolating missing sequences if they are smaller than 10 frames. Large gaps filled with last_value.
+Filtering with Butterworth filter, 4th order, 6 Hz.
+Pose in pixels saved to /Users/chandansharma/Desktop/workspace/metashape/projects/dc-pose/dochq/physiotrack/demo_PhysioTrack/demo_PhysioTrack_px_person00.trc.
+
+Converting pose to meters:
+Person #2 not detected in the video. Calibrating on person #0 instead.
+Using height of person #0 (1.65m) to convert coordinates in meters. Floor angle: auto (estimation: 43.08°), xy_origin: auto (estimation: [0, 683]) px.
+- Person 0: Seen from the front.
+Pose in meters saved to /Users/chandansharma/Desktop/workspace/metashape/projects/dc-pose/dochq/physiotrack/demo_PhysioTrack/demo_PhysioTrack_m_person00.trc. Also saved in c3d format.
+
+Post-processing angles:
+- Person 0: Interpolating missing sequences if they are smaller than 10 frames. Large gaps filled with last_value.
+Filtering with Butterworth filter, 4th order, 6 Hz.
+Correcting segment angles by removing the 43.08° floor angle.
+Angles saved to /Users/chandansharma/Desktop/workspace/metashape/projects/dc-pose/dochq/physiotrack/demo_PhysioTrack/demo_PhysioTrack_angles_person00.mot.
+
+Processing demo.mp4 took 47.69 s.
+
+
+---------------------------------------------------------------------
+Processing demo.mp4
+On Monday 17. March 2025, 20:17:32
+---------------------------------------------------------------------
+No ffmpeg exe could be found. Starting time set to 0.0. Error: No ffmpeg exe could be found. Install ffmpeg on your system, or set the IMAGEIO_FFMPEG_EXE environment variable.
+Using HALPE_26 model (body and feet) for pose estimation.
+
+Valid MPS installation found: using ONNXRuntime backend with GPU.
+
+Pose tracking set up for "body_with_feet" model.
+Mode: balanced.
+
+Persons are detected every 4 frames and tracked inbetween. Multi-person is selected. Tracking is done with physiotrack.
+keypoint_likelihood_threshold=0.3, average_likelihood_threshold=0.5, keypoint_number_threshold=0.3
+Skipping right wrist angle computation because at least one of the following keypoints is not provided by the model: ['RElbow', 'RWrist', 'RIndex'].
+Skipping left wrist angle computation because at least one of the following keypoints is not provided by the model: ['LElbow', 'LWrist', 'LIndex'].
+
+Processing video stream...
+Video processing completed.
+Processed video saved to /Users/chandansharma/Desktop/workspace/metashape/projects/dc-pose/dochq/physiotrack/demo_PhysioTrack/demo_PhysioTrack.mp4.
+Processed images saved to /Users/chandansharma/Desktop/workspace/metashape/projects/dc-pose/dochq/physiotrack/demo_PhysioTrack/demo_PhysioTrack_img.
+
+Post-processing pose:
+- Person 0: Interpolating missing sequences if they are smaller than 10 frames. Large gaps filled with last_value.
+Filtering with Butterworth filter, 4th order, 6 Hz.
+Pose in pixels saved to /Users/chandansharma/Desktop/workspace/metashape/projects/dc-pose/dochq/physiotrack/demo_PhysioTrack/demo_PhysioTrack_px_person00.trc.
+
+Converting pose to meters:
+Person #2 not detected in the video. Calibrating on person #0 instead.
+Using height of person #0 (1.65m) to convert coordinates in meters. Floor angle: auto (estimation: -1.34°), xy_origin: auto (estimation: [0, 514]) px.
+- Person 0: Seen from the front.
+
+
+---------------------------------------------------------------------
+Processing demo.mp4
+On Monday 17. March 2025, 20:18:08
+---------------------------------------------------------------------
+No ffmpeg exe could be found. Starting time set to 0.0. Error: No ffmpeg exe could be found. Install ffmpeg on your system, or set the IMAGEIO_FFMPEG_EXE environment variable.
+Using HALPE_26 model (body and feet) for pose estimation.
+
+Valid MPS installation found: using ONNXRuntime backend with GPU.
+
+Pose tracking set up for "body_with_feet" model.
+Mode: balanced.
+
+Persons are detected every 4 frames and tracked inbetween. Multi-person is selected. Tracking is done with physiotrack.
+keypoint_likelihood_threshold=0.3, average_likelihood_threshold=0.5, keypoint_number_threshold=0.3
+Skipping right wrist angle computation because at least one of the following keypoints is not provided by the model: ['RElbow', 'RWrist', 'RIndex'].
+Skipping left wrist angle computation because at least one of the following keypoints is not provided by the model: ['LElbow', 'LWrist', 'LIndex'].
+
+Processing video stream...
+Video processing completed.
+Processed video saved to /Users/chandansharma/Desktop/workspace/metashape/projects/dc-pose/dochq/physiotrack/demo_PhysioTrack/demo_PhysioTrack.mp4.
+Processed images saved to /Users/chandansharma/Desktop/workspace/metashape/projects/dc-pose/dochq/physiotrack/demo_PhysioTrack/demo_PhysioTrack_img.
+
+Post-processing pose:
+- Person 0: Interpolating missing sequences if they are smaller than 10 frames. Large gaps filled with last_value.
+Filtering with Butterworth filter, 4th order, 6 Hz.
+Pose in pixels saved to /Users/chandansharma/Desktop/workspace/metashape/projects/dc-pose/dochq/physiotrack/demo_PhysioTrack/demo_PhysioTrack_px_person00.trc.
+
+Converting pose to meters:
+Person #2 not detected in the video. Calibrating on person #0 instead.
+Using height of person #0 (1.65m) to convert coordinates in meters. Floor angle: auto (estimation: -3.45°), xy_origin: auto (estimation: [0, 502]) px.
+- Person 0: Seen from the front.
+
+
+---------------------------------------------------------------------
+Processing demo.mp4
+On Monday 17. March 2025, 20:19:40
+---------------------------------------------------------------------
+No ffmpeg exe could be found. Starting time set to 0.0. Error: No ffmpeg exe could be found. Install ffmpeg on your system, or set the IMAGEIO_FFMPEG_EXE environment variable.
+Using HALPE_26 model (body and feet) for pose estimation.
+
+Valid MPS installation found: using ONNXRuntime backend with GPU.
+
+Pose tracking set up for "body_with_feet" model.
+Mode: balanced.
+
+Persons are detected every 4 frames and tracked inbetween. Multi-person is selected. Tracking is done with physiotrack.
+keypoint_likelihood_threshold=0.3, average_likelihood_threshold=0.5, keypoint_number_threshold=0.3
+Skipping right wrist angle computation because at least one of the following keypoints is not provided by the model: ['RElbow', 'RWrist', 'RIndex'].
+Skipping left wrist angle computation because at least one of the following keypoints is not provided by the model: ['LElbow', 'LWrist', 'LIndex'].
+
+Processing video stream...
+Video processing completed.
+Processed video saved to /Users/chandansharma/Desktop/workspace/metashape/projects/dc-pose/dochq/physiotrack/demo_PhysioTrack/demo_PhysioTrack.mp4.
+Processed images saved to /Users/chandansharma/Desktop/workspace/metashape/projects/dc-pose/dochq/physiotrack/demo_PhysioTrack/demo_PhysioTrack_img.
+
+Post-processing pose:
+- Person 0: Interpolating missing sequences if they are smaller than 10 frames. Large gaps filled with last_value.
+Filtering with Butterworth filter, 4th order, 6 Hz.
+Pose in pixels saved to /Users/chandansharma/Desktop/workspace/metashape/projects/dc-pose/dochq/physiotrack/demo_PhysioTrack/demo_PhysioTrack_px_person00.trc.
+
+Converting pose to meters:
+Person #2 not detected in the video. Calibrating on person #0 instead.
+Using height of person #0 (1.65m) to convert coordinates in meters. Floor angle: auto (estimation: -0.89°), xy_origin: auto (estimation: [0, 514]) px.
+- Person 0: Seen from the front.
+Pose in meters saved to /Users/chandansharma/Desktop/workspace/metashape/projects/dc-pose/dochq/physiotrack/demo_PhysioTrack/demo_PhysioTrack_m_person00.trc. Also saved in c3d format.
+
+Post-processing angles:
+- Person 0: Interpolating missing sequences if they are smaller than 10 frames. Large gaps filled with last_value.
+Filtering with Butterworth filter, 4th order, 6 Hz.
+Correcting segment angles by removing the -0.89° floor angle.
+Angles saved to /Users/chandansharma/Desktop/workspace/metashape/projects/dc-pose/dochq/physiotrack/demo_PhysioTrack/demo_PhysioTrack_angles_person00.mot.
+
+Processing demo.mp4 took 1295.38 s.
+
+
+---------------------------------------------------------------------
+Processing demo.mp4
+On Thursday 20. March 2025, 17:59:00
+---------------------------------------------------------------------
+No ffmpeg exe could be found. Starting time set to 0.0. Error: No ffmpeg exe could be found. Install ffmpeg on your system, or set the IMAGEIO_FFMPEG_EXE environment variable.
+Using HALPE_26 model (body and feet) for pose estimation.
+
+Valid MPS installation found: using ONNXRuntime backend with GPU.
+
+Pose tracking set up for "body_with_feet" model.
+Mode: balanced.
+
+Persons are detected every 4 frames and tracked inbetween. Multi-person is selected. Tracking is done with physiotrack.
+keypoint_likelihood_threshold=0.3, average_likelihood_threshold=0.5, keypoint_number_threshold=0.3
+Skipping right wrist angle computation because at least one of the following keypoints is not provided by the model: ['RElbow', 'RWrist', 'RIndex'].
+Skipping left wrist angle computation because at least one of the following keypoints is not provided by the model: ['LElbow', 'LWrist', 'LIndex'].
+
+Processing video stream...
+Video processing completed.
+Processed video saved to /Users/chandansharma/Desktop/workspace/metashape/projects/dc-pose/dochq/physiotrack/demo_PhysioTrack/demo_PhysioTrack.mp4.
+Processed images saved to /Users/chandansharma/Desktop/workspace/metashape/projects/dc-pose/dochq/physiotrack/demo_PhysioTrack/demo_PhysioTrack_img.
+
+Post-processing pose:
+- Person 0: Interpolating missing sequences if they are smaller than 10 frames. Large gaps filled with last_value.
+Filtering with Butterworth filter, 4th order, 6 Hz.
+Pose in pixels saved to /Users/chandansharma/Desktop/workspace/metashape/projects/dc-pose/dochq/physiotrack/demo_PhysioTrack/demo_PhysioTrack_px_person00.trc.
+
+Converting pose to meters:
+Person #2 not detected in the video. Calibrating on person #0 instead.
+Using height of person #0 (1.65m) to convert coordinates in meters. Floor angle: auto (estimation: 43.08°), xy_origin: auto (estimation: [0, 683]) px.
+- Person 0: Seen from the front.
+Pose in meters saved to /Users/chandansharma/Desktop/workspace/metashape/projects/dc-pose/dochq/physiotrack/demo_PhysioTrack/demo_PhysioTrack_m_person00.trc. Also saved in c3d format.
+
+Post-processing angles:
+- Person 0: Interpolating missing sequences if they are smaller than 10 frames. Large gaps filled with last_value.
+Filtering with Butterworth filter, 4th order, 6 Hz.
+Correcting segment angles by removing the 43.08° floor angle.
+Angles saved to /Users/chandansharma/Desktop/workspace/metashape/projects/dc-pose/dochq/physiotrack/demo_PhysioTrack/demo_PhysioTrack_angles_person00.mot.
+
+Processing demo.mp4 took 47.86 s.

@@ -1,0 +1,11 @@
+demo_PhysioTrack
+physiotrack.egg-info
+physiotrack/Demo/resutls
+physiotrack/Demo/streamlit_results
+physiotrack/webcam*
+
+*.mp4
+*.trc
+*.mot
+*.c3d
+*.png

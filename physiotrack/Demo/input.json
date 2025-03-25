@@ -1,0 +1,99 @@
+config_dict = {
+    'project': {
+        'video_input': [str(demo_video)
+        ],
+        'px_to_m_person_height': 1.65,
+        'visible_side': ['auto'
+        ],
+        'time_range': [],  # Analyze the whole video
+        'video_dir': str(demo_dir),  # Make sure this is a string
+        'webcam_id': 0,
+        'input_size': [
+            1280,
+            720
+        ],
+        'load_trc_px': '',
+        'compare': False
+    },
+    'process': {
+        'multiperson': False,  # Focus on one person
+        'show_realtime_results': True,
+        'save_vid': True,
+        'save_img': False,
+        'save_pose': True,
+        'calculate_angles': True,
+        'save_angles': True,
+        'result_dir': str(demo_dir / 'results/demo_PhysioTrack')
+    },
+    'pose': {
+        'pose_model': 'body_with_feet',
+        'mode': 'performance',
+        'det_frequency': 4,
+        'device': 'auto',
+        'backend': 'auto',
+        'tracking_mode': 'physiotrack',
+        'deepsort_params': """{'max_age':30, 'n_init':3, 'nms_max_overlap':0.8, 'max_cosine_distance':0.3, 'nn_budget':200, 'max_iou_distance':0.8, 'embedder_gpu': True}""",
+        'keypoint_likelihood_threshold': 0.3,
+        'average_likelihood_threshold': 0.5,
+        'keypoint_number_threshold': 0.3,
+        'slowmo_factor': 1
+    },
+    'angles': {
+        'joint_angles': ['Right knee', 'Left knee', 'Right hip', 'Left hip', 'Right shoulder', 'Left shoulder'
+        ],
+        'segment_angles': ['Right thigh', 'Left thigh', 'Trunk'
+        ],
+        'display_angle_values_on': ['body', 'list'
+        ],
+        'fontSize': 0.3,
+        'flip_left_right': True,
+        'correct_segment_angles_with_floor_angle': True
+    },
+    'px_to_meters_conversion': {
+        'to_meters': True,
+        'make_c3d': True,
+        'calib_file': '',
+        'floor_angle': 'auto',
+        'xy_origin': ['auto'
+        ],
+        'save_calib': True
+    },
+    'post-processing': {
+        'interpolate': True,
+        'filter': True,
+        'show_graphs': False,
+        'filter_type': 'butterworth',
+        'butterworth': {'order': 4, 'cut_off_frequency': 6
+        },
+        'gaussian': {'sigma_kernel': 1
+        },
+        'loess': {'nb_values_used': 5
+        },
+        'median': {'kernel_size': 3
+        },
+        'interp_gap_smaller_than': 10,
+        'fill_large_gaps_with': 'last_value'
+    },
+    'kinematics': {
+        'do_ik': False,
+        'use_augmentation': False,
+        'use_contacts_muscles': True,
+        'participant_mass': [
+            67.0,
+            55.0
+        ],
+        'right_left_symmetry': True,
+        'default_height': 1.70,
+        'remove_individual_scaling_setup': True,
+        'remove_individual_ik_setup': True,
+        'fastest_frames_to_remove_percent': 0.1,
+        'close_to_zero_speed_px': 50,
+        'close_to_zero_speed_m': 0.2,
+        'large_hip_knee_angles': 45,
+        'trimmed_extrema_percent': 0.5,
+        'osim_setup_path': '../OpenSim_setup'
+    },
+    'logging': {
+        'use_custom_logging': False
+    }
+}

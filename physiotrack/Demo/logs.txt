@@ -1,0 +1,60 @@
+
+
+---------------------------------------------------------------------
+Processing webcam
+On Monday 17. March 2025, 20:45:17
+---------------------------------------------------------------------
+Webcam input: the framerate may vary. If results are filtered, PhysioTrack will use the average framerate as input.
+Using HALPE_26 model (body and feet) for pose estimation.
+
+Valid MPS installation found: using ONNXRuntime backend with GPU.
+
+Pose tracking set up for "body_with_feet" model.
+Mode: lightweight.
+
+Persons are detected every 4 frames and tracked inbetween. Multi-person is selected. Tracking is done with physiotrack.
+keypoint_likelihood_threshold=0.3, average_likelihood_threshold=0.5, keypoint_number_threshold=0.3
+Skipping right wrist angle computation because at least one of the following keypoints is not provided by the model: ['RElbow', 'RWrist', 'RIndex'].
+Skipping left wrist angle computation because at least one of the following keypoints is not provided by the model: ['LElbow', 'LWrist', 'LIndex'].
+
+Processing video stream...
+
+
+---------------------------------------------------------------------
+Processing webcam
+On Monday 17. March 2025, 20:46:27
+---------------------------------------------------------------------
+Webcam input: the framerate may vary. If results are filtered, PhysioTrack will use the average framerate as input.
+Using HALPE_26 model (body and feet) for pose estimation.
+
+Valid MPS installation found: using ONNXRuntime backend with GPU.
+
+Pose tracking set up for "body_with_feet" model.
+Mode: performance.
+
+Persons are detected every 4 frames and tracked inbetween. Multi-person is selected. Tracking is done with physiotrack.
+keypoint_likelihood_threshold=0.3, average_likelihood_threshold=0.5, keypoint_number_threshold=0.3
+Skipping right wrist angle computation because at least one of the following keypoints is not provided by the model: ['RElbow', 'RWrist', 'RIndex'].
+Skipping left wrist angle computation because at least one of the following keypoints is not provided by the model: ['LElbow', 'LWrist', 'LIndex'].
+
+Processing video stream...
+
+
+---------------------------------------------------------------------
+Processing webcam
+On Monday 17. March 2025, 20:46:47
+---------------------------------------------------------------------
+Webcam input: the framerate may vary. If results are filtered, PhysioTrack will use the average framerate as input.
+Using HALPE_26 model (body and feet) for pose estimation.
+
+Valid MPS installation found: using ONNXRuntime backend with GPU.
+
+Pose tracking set up for "body_with_feet" model.
+Mode: performance.
+
+Persons are detected every 4 frames and tracked inbetween. Multi-person is selected. Tracking is done with physiotrack.
+keypoint_likelihood_threshold=0.3, average_likelihood_threshold=0.5, keypoint_number_threshold=0.3
+Skipping right wrist angle computation because at least one of the following keypoints is not provided by the model: ['RElbow', 'RWrist', 'RIndex'].
+Skipping left wrist angle computation because at least one of the following keypoints is not provided by the model: ['LElbow', 'LWrist', 'LIndex'].
+
+Processing video stream...
