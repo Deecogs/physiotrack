@@ -23,7 +23,7 @@ def main():
     # Get the demo video path
     demo_dir = Path(__file__).resolve().parent
     print(f"demo_dir {demo_dir}")
-    demo_video = demo_dir / "lb-flexion.mp4"
+    demo_video = demo_dir / "Spine-flexion-extension-side.mp4"
     # "demo.mp4"
     # /Users/chandansharma/Desktop/workspace/metashape/projects/dc-pose/dochq/physiotrack/physiotrack/Demo/lb-flexion.mp4
     if not demo_video.exists():
@@ -123,7 +123,7 @@ def main():
     # Find the angles.mot file
     results_dir = Path(config_dict['process']['result_dir'])
     print("results_dir", results_dir)
-    subfolder = "lb-flexion_PhysioTrack"  # Ensure we look in the correct subfolder
+    subfolder = "Spine-flexion-extension-side_PhysioTrack"  # Ensure we look in the correct subfolder
     full_results_dir = results_dir / subfolder
     print("Looking for results in:", full_results_dir)
 
@@ -150,22 +150,59 @@ def main():
     
     # Calculate ROM for each joint
     rom_results = {}
-    for col in angles_data.columns:
-        if col == 'time':
-            continue
+    # hip_results = {}
+
+    # Define the output file path
+    output_file = full_results_dir / "rom_results.txt"
+
+    with open(output_file, 'w') as f:
+        f.write("Joint Range of Motion (ROM) Analysis\n")
+        f.write("=" * 40 + "\n\n")
+
+        for col in angles_data.columns:
+            if col == 'time':
+                continue
         
-        # Calculate min, max, and ROM
-        min_val = angles_data[col].min()
-        max_val = angles_data[col].max()
-        rom = max_val - min_val
+            # Calculate min, max, and ROM
+            min_val = angles_data[col].min()
+            max_val = angles_data[col].max()
+            rom = max_val - min_val
         
-        rom_results[col] = {
-            'min': min_val,
-            'max': max_val,
-            'rom': rom
-        }
+            rom_results[col] = {
+                'min': min_val,
+                'max': max_val,
+                'rom': rom
+            }
+
+            # if col in ['right hip', 'left hip']:
+            #     ideal_anlge = (min_val + max_val) / 2 # Mean value for now, logic to be updated
+            #     hip_results[col] = {
+            #         'min': min_val,
+            #         'max': max_val,
+            #         'rom': rom,
+            #         'ideal_angle': ideal_anlge
+            #     }
         
-        print(f"ROM for {col}: {rom:.2f} degrees (Min: {min_val:.2f}, Max: {max_val:.2f})")
+            output_string = f"ROM for {col}: {rom:.2f} degrees (Min: {min_val:.2f}, Max: {max_val:.2f})"
+            print(output_string)
+
+            # Write to file
+            f.write(output_string + "\n")
+
+    print(f"ROM results saved to {output_file}")
+
+    # # Save Hip ROM results
+    # hip_results_file = full_results_dir / 'hip_rom_results.txt'
+    # with open(hip_results_file, 'w') as f:
+    #     f.write("Hip ROM Analysis\n")
+    #     f.write("=================\n")
+    #     for hip, values in hip_results.items():
+    #         f.write(f"{hip}:\n")
+    #         f.write(f"  Min Angle: {values['min']:.2f} degrees\n")
+    #         f.write(f"  Max Angle: {values['max']:.2f} degrees\n")
+    #         f.write(f"  Ideal Angle: {values['ideal']:.2f} degrees\n\n")
+
+    # print(f"Hip ROM results saved to {hip_results_file}")
     
     # Plot the results
     plt.figure(figsize=(12, 8))

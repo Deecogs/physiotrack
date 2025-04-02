@@ -23,7 +23,7 @@ def main():
     # Get the demo video path
     demo_dir = Path(__file__).resolve().parent
     print(f"demo_dir {demo_dir}")
-    demo_video = demo_dir / "lb-flexion.mp4"
+    demo_video = demo_dir / "demo-spine-flexion-2.mp4"
     # "demo.mp4"
     # /Users/chandansharma/Desktop/workspace/metashape/projects/dc-pose/dochq/physiotrack/physiotrack/Demo/lb-flexion.mp4
     if not demo_video.exists():
@@ -123,7 +123,7 @@ def main():
     # Find the angles.mot file
     results_dir = Path(config_dict['process']['result_dir'])
     print("results_dir", results_dir)
-    subfolder = "lb-flexion_PhysioTrack"  # Ensure we look in the correct subfolder
+    subfolder = "demo-spine-flexion-2_PhysioTrack"  # Ensure we look in the correct subfolder
     full_results_dir = results_dir / subfolder
     print("Looking for results in:", full_results_dir)
 
@@ -147,25 +147,61 @@ def main():
     
     # Read the data
     angles_data = pd.read_csv(mot_file, sep='\t', skiprows=header_rows)
+
+    # Ensure time column is float
+    angles_data['time'] = angles_data['time'].astype(float)
+
+    window_size = 0.4 # seconds
+    time_step = angles_data['time'].iloc[1] - angles_data['time'].iloc[0]
+
+    # Calculate window size in terms of indices
+    window_size_idx = int(window_size / time_step)
     
     # Calculate ROM for each joint
     rom_results = {}
-    for col in angles_data.columns:
-        if col == 'time':
-            continue
+
+    # Define the output file path
+    output_file = full_results_dir / "rom_results.txt"
+    log_file = full_results_dir / "logs.txt"
+
+    with open(output_file, 'w') as f, open(log_file, 'w') as f_log:
+        f.write("Joint Range of Motion (ROM) Analysis with Sliding Window\n")
+        f.write("=" * 50 + "\n\n")
+        f_log.write("Detailed Angle Calculations:\n" + "-" * 50 + "\n\n")
+
+        for col in angles_data.columns:
+            if col == 'time':
+                continue
+
+            # Apply transformation (180 - angle)
+            angles_data[f'{col}_transformed'] = 180 - angles_data[col]
+
+            # Compute rolling mean over the given window size
+            angles_data[f'{col}_avg'] = angles_data[f'{col}_transformed'].rolling(window=window_size_idx, min_periods=1).mean()
+
+            # Find min and max from the averaged values
+            min_val = angles_data[f'{col}_avg'].min()
+            max_val = angles_data[f'{col}_avg'].max()
+            rom = max_val - min_val
+
+            rom_results[col] = {
+                'min': min_val,
+                'max': max_val,
+                'rom': rom
+            }
         
-        # Calculate min, max, and ROM
-        min_val = angles_data[col].min()
-        max_val = angles_data[col].max()
-        rom = max_val - min_val
-        
-        rom_results[col] = {
-            'min': min_val,
-            'max': max_val,
-            'rom': rom
-        }
-        
-        print(f"ROM for {col}: {rom:.2f} degrees (Min: {min_val:.2f}, Max: {max_val:.2f})")
+            output_string = f"ROM for {col}: {rom:.2f} degrees (Min: {min_val:.2f}, Max: {max_val:.2f})"
+            print(output_string)
+
+            # Write to file
+            f.write(output_string + "\n")
+            
+            f_log.write(f"{col} (Original):\n{angles_data[col].tolist()}\n")
+            f_log.write(f"{col} (Transformed):\n{angles_data[f'{col}_transformed'].tolist()}\n")
+            f_log.write(f"Min: {min_val:.2f}, Max: {max_val:.2f}, ROM: {rom:.2f}\n\n")
+
+    print(f"ROM results saved to {output_file}")
+    print(f"Detailed logs saved to {log_file}")
     
     # Plot the results
     plt.figure(figsize=(12, 8))
