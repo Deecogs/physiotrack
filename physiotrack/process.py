@@ -329,10 +329,83 @@ def draw_dotted_line(img, start, direction, length, color=(0, 255, 0), gap=7, do
         cv2.line(img, tuple(line_start.astype(int)), tuple(line_end.astype(int)), color, thickness)
 
 
-def draw_angles(img, valid_X, valid_Y, valid_angles, valid_X_flipped, keypoints_ids, keypoints_names, angle_names, display_angle_values_on= ['body', 'list'], colors=[(255, 0, 0), (0, 255, 0), (0, 0, 255)], fontSize=0.3, thickness=1):
+# def draw_angles(img, valid_X, valid_Y, valid_angles, valid_X_flipped, keypoints_ids, keypoints_names, angle_names, display_angle_values_on= ['body', 'list'], colors=[(255, 0, 0), (0, 255, 0), (0, 0, 255)], fontSize=0.3, thickness=1):
+#     '''
+#     Draw angles on the image.
+#     Angles are displayed as a list on the image and/or on the body.
+
+#     INPUTS:
+#     - img: opencv image
+#     - valid_X: list of list of x coordinates
+#     - valid_Y: list of list of y coordinates
+#     - valid_angles: list of list of angles
+#     - valid_X_flipped: list of list of x coordinates after flipping if needed
+#     - keypoints_ids: list of keypoint ids (see skeletons.py)
+#     - keypoints_names: list of keypoint names (see skeletons.py)
+#     - angle_names: list of angle names
+#     - display_angle_values_on: list of str. 'body' and/or 'list'
+#     - colors: list of colors to cycle through
+
+#     OUTPUT:
+#     - img: image with angles
+#     '''
+
+#     color_cycle = it.cycle(colors)
+#     for person_id, (X,Y,angles, X_flipped) in enumerate(zip(valid_X, valid_Y, valid_angles, valid_X_flipped)):
+#         c = next(color_cycle)
+#         if not np.isnan(X).all():
+#             # person label
+#             if 'list' in display_angle_values_on:
+#                 person_label_position = (int(10 + fontSize*150/0.3*person_id), int(fontSize*50))
+#                 cv2.putText(img, f'person {person_id}', person_label_position, cv2.FONT_HERSHEY_SIMPLEX, fontSize+0.2, (255,255,255), thickness+1, cv2.LINE_AA)
+#                 cv2.putText(img, f'person {person_id}', person_label_position, cv2.FONT_HERSHEY_SIMPLEX, fontSize+0.2, c, thickness, cv2.LINE_AA)
+            
+#             # angle lines, names and values
+#             ang_label_line = 1
+#             for k, ang in enumerate(angles):
+#                 if not np.isnan(ang):
+#                     ang_name = angle_names[k]
+#                     ang_params = angle_dict.get(ang_name)
+#                     if ang_params is not None:
+#                         kpts = ang_params[0]
+#                         if not any(item not in keypoints_names+['Neck', 'Hip'] for item in kpts):
+#                             ang_coords = np.array([[X[keypoints_ids[keypoints_names.index(kpt)]], Y[keypoints_ids[keypoints_names.index(kpt)]]] for kpt in ang_params[0] if kpt in keypoints_names])
+#                             X_flipped = np.append(X_flipped, X[len(X_flipped):])
+#                             X_flipped_coords = [X_flipped[keypoints_ids[keypoints_names.index(kpt)]] for kpt in ang_params[0] if kpt in keypoints_names]
+#                             flip = -1 if any(x_flipped < 0 for x_flipped in X_flipped_coords) else 1
+#                             flip = 1 if ang_name in ['pelvis', 'trunk', 'shoulders'] else flip
+#                             right_angle = True if ang_params[2]==90 else False
+                            
+#                             # Draw angle
+#                             if len(ang_coords) == 2: # segment angle
+#                                 app_point, vec = draw_segment_angle(img, ang_coords, flip)
+#                             else: # joint angle
+#                                 app_point, vec1, vec2 = draw_joint_angle(img, ang_coords, flip, right_angle)
+        
+#                             # Write angle on body
+#                             if 'body' in display_angle_values_on:
+#                                 if len(ang_coords) == 2: # segment angle
+#                                     write_angle_on_body(img, ang, app_point, vec, np.array([1,0]), dist=20, color=(255,255,255), fontSize=fontSize, thickness=thickness)
+#                                 else: # joint angle
+#                                     write_angle_on_body(img, ang, app_point, vec1, vec2, dist=40, color=(0,255,0), fontSize=fontSize, thickness=thickness)
+
+#                             # Write angle as a list on image with progress bar
+#                             if 'list' in display_angle_values_on:
+#                                 if len(ang_coords) == 2: # segment angle
+#                                     ang_label_line = write_angle_as_list(img, ang, ang_name, person_label_position, ang_label_line, color = (255,255,255), fontSize=fontSize, thickness=thickness)
+#                                 else:
+#                                     ang_label_line = write_angle_as_list(img, ang, ang_name, person_label_position, ang_label_line, color = (0,255,0), fontSize=fontSize, thickness=thickness)
+
+#     return img
+
+def draw_angles(img, valid_X, valid_Y, valid_angles, valid_X_flipped, keypoints_ids, keypoints_names, angle_names, display_angle_values_on=['body', 'list'], colors=[(255, 0, 0)], fontSize=0.3, thickness=1):
     '''
-    Draw angles on the image.
-    Angles are displayed as a list on the image and/or on the body.
+    Draw only the relevant angles on the image.
+    Angles: 
+    - Right Hip
+    - Left Hip
+    - Right Knee
+    - Left Knee
 
     INPUTS:
     - img: opencv image
@@ -343,61 +416,66 @@ def draw_angles(img, valid_X, valid_Y, valid_angles, valid_X_flipped, keypoints_
     - keypoints_ids: list of keypoint ids (see skeletons.py)
     - keypoints_names: list of keypoint names (see skeletons.py)
     - angle_names: list of angle names
-    - display_angle_values_on: list of str. 'body' and/or 'list'
+    - display_angle_values_on: list of str. 'body' and/or 'list' (display angles on the body)
     - colors: list of colors to cycle through
 
     OUTPUT:
     - img: image with angles
     '''
 
+     # Define the relevant angles based on the console output
+    relevant_angle_names = {
+        "right knee",
+        "left knee",
+        "right hip",
+        "left hip"
+    }
+
     color_cycle = it.cycle(colors)
-    for person_id, (X,Y,angles, X_flipped) in enumerate(zip(valid_X, valid_Y, valid_angles, valid_X_flipped)):
+    for person_id, (X, Y, angles, X_flipped) in enumerate(zip(valid_X, valid_Y, valid_angles, valid_X_flipped)):
         c = next(color_cycle)
+
         if not np.isnan(X).all():
             # person label
             if 'list' in display_angle_values_on:
                 person_label_position = (int(10 + fontSize*150/0.3*person_id), int(fontSize*50))
                 cv2.putText(img, f'person {person_id}', person_label_position, cv2.FONT_HERSHEY_SIMPLEX, fontSize+0.2, (255,255,255), thickness+1, cv2.LINE_AA)
                 cv2.putText(img, f'person {person_id}', person_label_position, cv2.FONT_HERSHEY_SIMPLEX, fontSize+0.2, c, thickness, cv2.LINE_AA)
-            
-            # angle lines, names and values
+
+            # Angle lines, names, and values
+            # print(f"Writing angles on the image for person {person_id}")
+
             ang_label_line = 1
             for k, ang in enumerate(angles):
                 if not np.isnan(ang):
                     ang_name = angle_names[k]
-                    ang_params = angle_dict.get(ang_name)
-                    if ang_params is not None:
-                        kpts = ang_params[0]
-                        if not any(item not in keypoints_names+['Neck', 'Hip'] for item in kpts):
-                            ang_coords = np.array([[X[keypoints_ids[keypoints_names.index(kpt)]], Y[keypoints_ids[keypoints_names.index(kpt)]]] for kpt in ang_params[0] if kpt in keypoints_names])
-                            X_flipped = np.append(X_flipped, X[len(X_flipped):])
-                            X_flipped_coords = [X_flipped[keypoints_ids[keypoints_names.index(kpt)]] for kpt in ang_params[0] if kpt in keypoints_names]
-                            flip = -1 if any(x_flipped < 0 for x_flipped in X_flipped_coords) else 1
-                            flip = 1 if ang_name in ['pelvis', 'trunk', 'shoulders'] else flip
-                            right_angle = True if ang_params[2]==90 else False
-                            
-                            # Draw angle
-                            if len(ang_coords) == 2: # segment angle
-                                app_point, vec = draw_segment_angle(img, ang_coords, flip)
-                            else: # joint angle
-                                app_point, vec1, vec2 = draw_joint_angle(img, ang_coords, flip, right_angle)
-        
-                            # Write angle on body
-                            if 'body' in display_angle_values_on:
-                                if len(ang_coords) == 2: # segment angle
-                                    write_angle_on_body(img, ang, app_point, vec, np.array([1,0]), dist=20, color=(255,255,255), fontSize=fontSize, thickness=thickness)
-                                else: # joint angle
-                                    write_angle_on_body(img, ang, app_point, vec1, vec2, dist=40, color=(0,255,0), fontSize=fontSize, thickness=thickness)
+                    # print(f"Processing angle: {ang_name}")
 
-                            # Write angle as a list on image with progress bar
-                            if 'list' in display_angle_values_on:
-                                if len(ang_coords) == 2: # segment angle
-                                    ang_label_line = write_angle_as_list(img, ang, ang_name, person_label_position, ang_label_line, color = (255,255,255), fontSize=fontSize, thickness=thickness)
-                                else:
-                                    ang_label_line = write_angle_as_list(img, ang, ang_name, person_label_position, ang_label_line, color = (0,255,0), fontSize=fontSize, thickness=thickness)
+                    if ang_name in relevant_angle_names:  # Only process relevant angles
+                        ang_params = angle_dict.get(ang_name)
+                        if ang_params is None:
+                            # print(f"Angle {ang_name} not found in angle_dict!")
+                            continue
+
+                        # print(f"Angle parameters: {ang_params}")
+                        keypoints = ang_params[0]
+                        # print(f"Keypoints: {keypoints}")
+
+                        if not any(kpt not in keypoints_names for kpt in keypoints):
+                            ang_coords = np.array([
+                                [X[keypoints_ids[keypoints_names.index(kpt)]], Y[keypoints_ids[keypoints_names.index(kpt)]]]
+                                for kpt in keypoints if kpt in keypoints_names
+                            ])
+
+                            # Draw angle
+                            if len(ang_coords) == 2:  # Segment angle
+                                app_point, vec = draw_segment_angle(img, ang_coords, flip=1)
+                                write_angle_on_body(img, ang, app_point, vec, np.array([1, 0]), dist=20, color=(255, 255, 255), fontSize=fontSize, thickness=thickness)
+                            else:  # Joint angle
+                                app_point, vec1, vec2 = draw_joint_angle(img, ang_coords, flip=1, right_angle=False)
+                                write_angle_on_body(img, ang, app_point, vec1, vec2, dist=40, color=(0, 255, 0), fontSize=fontSize, thickness=thickness)
 
     return img
-
 
 def draw_segment_angle(img, ang_coords, flip):
     '''
