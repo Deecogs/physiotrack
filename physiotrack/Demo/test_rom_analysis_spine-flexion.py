@@ -23,7 +23,7 @@ def main():
     # Get the demo video path
     demo_dir = Path(__file__).resolve().parent
     print(f"demo_dir {demo_dir}")
-    demo_video = demo_dir / "demo-spine-flexion-2.mp4"
+    demo_video = demo_dir / "demo-spine-flexion-1.mp4"
     # "demo.mp4"
     # /Users/chandansharma/Desktop/workspace/metashape/projects/dc-pose/dochq/physiotrack/physiotrack/Demo/lb-flexion.mp4
     if not demo_video.exists():
@@ -123,12 +123,13 @@ def main():
     # Find the angles.mot file
     results_dir = Path(config_dict['process']['result_dir'])
     print("results_dir", results_dir)
-    subfolder = "demo-spine-flexion-2_PhysioTrack"  # Ensure we look in the correct subfolder
+
+    # # Name the subfolder as the video file name_PhysioTrack
+    subfolder = "demo-spine-flexion-1_PhysioTrack"  # Ensure we look in the correct subfolder
     full_results_dir = results_dir / subfolder
     print("Looking for results in:", full_results_dir)
 
     mot_files = list(full_results_dir.glob("*_angles*.mot"))
-    # mot_files = list(results_dir.glob("*_angles*.mot"))
     
     if not mot_files:
         print("No angle files found. Processing may have failed.")
@@ -164,10 +165,11 @@ def main():
     output_file = full_results_dir / "rom_results.txt"
     log_file = full_results_dir / "logs.txt"
 
-    with open(output_file, 'w') as f, open(log_file, 'w') as f_log:
+    with open(output_file, 'w') as f, open(log_file, 'w') as log:
         f.write("Joint Range of Motion (ROM) Analysis with Sliding Window\n")
         f.write("=" * 50 + "\n\n")
-        f_log.write("Detailed Angle Calculations:\n" + "-" * 50 + "\n\n")
+        log.write("Detailed Logs for ROM Calculation\n")
+        log.write("=" * 50 + "\n\n")
 
         for col in angles_data.columns:
             if col == 'time':
@@ -195,10 +197,11 @@ def main():
 
             # Write to file
             f.write(output_string + "\n")
-            
-            f_log.write(f"{col} (Original):\n{angles_data[col].tolist()}\n")
-            f_log.write(f"{col} (Transformed):\n{angles_data[f'{col}_transformed'].tolist()}\n")
-            f_log.write(f"Min: {min_val:.2f}, Max: {max_val:.2f}, ROM: {rom:.2f}\n\n")
+
+            log.write(f"Processing {col}:\n")
+            log.write(f"  Min Value: {min_val:.2f}\n")
+            log.write(f"  Max Value: {max_val:.2f}\n")
+            log.write(f"  ROM: {rom:.2f} degrees\n\n")
 
     print(f"ROM results saved to {output_file}")
     print(f"Detailed logs saved to {log_file}")

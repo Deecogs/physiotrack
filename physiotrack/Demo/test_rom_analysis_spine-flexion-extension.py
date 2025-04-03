@@ -123,12 +123,13 @@ def main():
     # Find the angles.mot file
     results_dir = Path(config_dict['process']['result_dir'])
     print("results_dir", results_dir)
+
+    # # Name the subfolder as the video file name_PhysioTrack
     subfolder = "Spine-flexion-extension-side_PhysioTrack"  # Ensure we look in the correct subfolder
     full_results_dir = results_dir / subfolder
     print("Looking for results in:", full_results_dir)
 
     mot_files = list(full_results_dir.glob("*_angles*.mot"))
-    # mot_files = list(results_dir.glob("*_angles*.mot"))
     
     if not mot_files:
         print("No angle files found. Processing may have failed.")
@@ -151,7 +152,7 @@ def main():
     # Ensure time column is float
     angles_data['time'] = angles_data['time'].astype(float)
 
-    window_size = 0.4
+    window_size = 0.4 # seconds
     time_step = angles_data['time'].iloc[1] - angles_data['time'].iloc[0]
 
     # Calculate window size in terms of indices
