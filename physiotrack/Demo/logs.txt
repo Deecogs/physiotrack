@@ -58,3 +58,55 @@ Skipping right wrist angle computation because at least one of the following key
 Skipping left wrist angle computation because at least one of the following keypoints is not provided by the model: ['LElbow', 'LWrist', 'LIndex'].
 
 Processing video stream...
+
+
+---------------------------------------------------------------------
+Processing webcam
+On Thursday 27. March 2025, 15:39:52
+---------------------------------------------------------------------
+Webcam input: the framerate may vary. If results are filtered, PhysioTrack will use the average framerate as input.
+Using HALPE_26 model (body and feet) for pose estimation.
+
+Valid CUDA installation found: using ONNXRuntime backend with GPU.
+
+Pose tracking set up for "body_with_feet" model.
+Mode: performance.
+
+Persons are detected every 4 frames and tracked inbetween. Multi-person is selected. Tracking is done with physiotrack.
+keypoint_likelihood_threshold=0.3, average_likelihood_threshold=0.5, keypoint_number_threshold=0.3
+Skipping right wrist angle computation because at least one of the following keypoints is not provided by the model: ['RElbow', 'RWrist', 'RIndex'].
+Skipping left wrist angle computation because at least one of the following keypoints is not provided by the model: ['LElbow', 'LWrist', 'LIndex'].
+
+Processing video stream...
+Video processing completed.
+Rewriting webcam video based on the average framerate 8.93614030332535.
+Processed video saved to E:\Work\physiotrack\physiotrack\Demo\webcam_20250327_153952\webcam_20250327_153952.mp4.
+
+Post-processing pose:
+- Person 0: Interpolating missing sequences if they are smaller than 10 frames. Large gaps filled with last_value.
+Filtering with Butterworth filter, 4th order, 4.465837233046153 Hz.
+Pose in pixels saved to E:\Work\physiotrack\physiotrack\Demo\webcam_20250327_153952\webcam_20250327_153952_px_person00.trc.
+- Person 1: Interpolating missing sequences if they are smaller than 10 frames. Large gaps filled with last_value.
+Filtering with Butterworth filter, 4th order, 4.465837233046153 Hz.
+Pose in pixels saved to E:\Work\physiotrack\physiotrack\Demo\webcam_20250327_153952\webcam_20250327_153952_px_person01.trc.
+
+Converting pose to meters:
+Person #2 not detected in the video. Calibrating on person #0 instead.
+Could not estimate the floor angle and xy_origin for person 0. Make sure that the full body is visible. Using floor angle = 0° and xy_origin = [640.0, 360.0] px.
+Using height of person #0 (1.65m) to convert coordinates in meters. Floor angle: auto (estimation: 0.0°), xy_origin: auto (estimation: [640, 360]) px.
+- Person 0: Seen from the front.
+Pose in meters saved to E:\Work\physiotrack\physiotrack\Demo\webcam_20250327_153952\webcam_20250327_153952_m_person00.trc. Also saved in c3d format.
+- Person 1: Keeping output in 2D because "visible_side" is set to "none" for person 1.
+Pose in meters saved to E:\Work\physiotrack\physiotrack\Demo\webcam_20250327_153952\webcam_20250327_153952_m_person01.trc. Also saved in c3d format.
+
+Post-processing angles:
+- Person 0: Interpolating missing sequences if they are smaller than 10 frames. Large gaps filled with last_value.
+Filtering with Butterworth filter, 4th order, 4.465837233046153 Hz.
+Correcting segment angles by removing the 0.0° floor angle.
+Angles saved to E:\Work\physiotrack\physiotrack\Demo\webcam_20250327_153952\webcam_20250327_153952_angles_person00.mot.
+- Person 1: Interpolating missing sequences if they are smaller than 10 frames. Large gaps filled with last_value.
+Filtering with Butterworth filter, 4th order, 4.465837233046153 Hz.
+Correcting segment angles by removing the 0.0° floor angle.
+Angles saved to E:\Work\physiotrack\physiotrack\Demo\webcam_20250327_153952\webcam_20250327_153952_angles_person01.mot.
+
+Processing webcam took 79.74 s.
