@@ -8,6 +8,7 @@ This is a demo that shows how to load a video file, process it, and analyze the 
 
 import os
 import sys
+import json
 from pathlib import Path
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -23,7 +24,7 @@ def main():
     # Get the demo video path
     demo_dir = Path(__file__).resolve().parent
     print(f"demo_dir {demo_dir}")
-    demo_video = demo_dir / "Spine-flexion-extension-side.mp4"
+    demo_video = demo_dir / "demo-spine-flexion-1.mp4"
     # "demo.mp4"
     # /Users/chandansharma/Desktop/workspace/metashape/projects/dc-pose/dochq/physiotrack/physiotrack/Demo/lb-flexion.mp4
     if not demo_video.exists():
@@ -123,12 +124,13 @@ def main():
     # Find the angles.mot file
     results_dir = Path(config_dict['process']['result_dir'])
     print("results_dir", results_dir)
-    subfolder = "Spine-flexion-extension-side_PhysioTrack"  # Ensure we look in the correct subfolder
+
+    # # Name the subfolder as the video file name_PhysioTrack
+    subfolder = "demo-spine-flexion-1_PhysioTrack"  # Ensure we look in the correct subfolder
     full_results_dir = results_dir / subfolder
     print("Looking for results in:", full_results_dir)
 
     mot_files = list(full_results_dir.glob("*_angles*.mot"))
-    # mot_files = list(results_dir.glob("*_angles*.mot"))
     
     if not mot_files:
         print("No angle files found. Processing may have failed.")
@@ -147,62 +149,64 @@ def main():
     
     # Read the data
     angles_data = pd.read_csv(mot_file, sep='\t', skiprows=header_rows)
+
+    # Ensure time column is float
+    angles_data['time'] = angles_data['time'].astype(float)
+
+    window_size = 0.4 # seconds
+    time_step = angles_data['time'].iloc[1] - angles_data['time'].iloc[0]
+
+    # Calculate window size in terms of indices
+    window_size_idx = int(window_size / time_step)
     
     # Calculate ROM for each joint
     rom_results = {}
-    # hip_results = {}
 
     # Define the output file path
-    output_file = full_results_dir / "rom_results.txt"
+    output_file = full_results_dir / "rom_results.json"
+    log_file = full_results_dir / "logs.json"
 
+    logs = {"ROM Calculation Logs": []}
+
+    for col in angles_data.columns:
+        if col == 'time':
+            continue
+
+        # Apply transformation (180 - angle)
+        angles_data[f'{col}_transformed'] = 180 - angles_data[col]
+
+        # Compute rolling mean over the given window size
+        angles_data[f'{col}_avg'] = angles_data[f'{col}_transformed'].rolling(window=window_size_idx, min_periods=1).mean()
+        # Find min and max from the averaged values
+        min_val = angles_data[f'{col}_avg'].min()
+        max_val = angles_data[f'{col}_avg'].max()
+        rom = max_val - min_val
+
+        rom_results[col] = {
+            'min': min_val,
+            'max': max_val,
+            'rom': rom
+        }
+
+        output_string = f"ROM for {col}: {rom:.2f} degrees (Min: {min_val:.2f}, Max: {max_val:.2f})"
+        print(output_string)
+
+        logs["ROM Calculation Logs"].append({
+            "joint": col,
+            "min_value": min_val,
+            "max_value": max_val,
+            "rom": rom
+        })
+
+    # Save results to JSON files
     with open(output_file, 'w') as f:
-        f.write("Joint Range of Motion (ROM) Analysis\n")
-        f.write("=" * 40 + "\n\n")
+        json.dump(rom_results, f, indent=4)
 
-        for col in angles_data.columns:
-            if col == 'time':
-                continue
-        
-            # Calculate min, max, and ROM
-            min_val = angles_data[col].min()
-            max_val = angles_data[col].max()
-            rom = max_val - min_val
-        
-            rom_results[col] = {
-                'min': min_val,
-                'max': max_val,
-                'rom': rom
-            }
-
-            # if col in ['right hip', 'left hip']:
-            #     ideal_anlge = (min_val + max_val) / 2 # Mean value for now, logic to be updated
-            #     hip_results[col] = {
-            #         'min': min_val,
-            #         'max': max_val,
-            #         'rom': rom,
-            #         'ideal_angle': ideal_anlge
-            #     }
-        
-            output_string = f"ROM for {col}: {rom:.2f} degrees (Min: {min_val:.2f}, Max: {max_val:.2f})"
-            print(output_string)
-
-            # Write to file
-            f.write(output_string + "\n")
+    with open(log_file, 'w') as log:
+        json.dump(logs, log, indent=4)
 
     print(f"ROM results saved to {output_file}")
-
-    # # Save Hip ROM results
-    # hip_results_file = full_results_dir / 'hip_rom_results.txt'
-    # with open(hip_results_file, 'w') as f:
-    #     f.write("Hip ROM Analysis\n")
-    #     f.write("=================\n")
-    #     for hip, values in hip_results.items():
-    #         f.write(f"{hip}:\n")
-    #         f.write(f"  Min Angle: {values['min']:.2f} degrees\n")
-    #         f.write(f"  Max Angle: {values['max']:.2f} degrees\n")
-    #         f.write(f"  Ideal Angle: {values['ideal']:.2f} degrees\n\n")
-
-    # print(f"Hip ROM results saved to {hip_results_file}")
+    print(f"Detailed logs saved to {log_file}")
     
     # Plot the results
     plt.figure(figsize=(12, 8))

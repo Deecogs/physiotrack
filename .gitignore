@@ -3,6 +3,7 @@ physiotrack.egg-info
 physiotrack/Demo/resutls
 physiotrack/Demo/streamlit_results
 physiotrack/webcam*
+__pycache__
 
 *.mp4
 *.trc
