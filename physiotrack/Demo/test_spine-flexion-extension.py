@@ -8,6 +8,7 @@ This is a demo that shows how to load a video file, process it, and analyze the 
 
 import os
 import sys
+import json
 from pathlib import Path
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -162,46 +163,47 @@ def main():
     rom_results = {}
 
     # Define the output file path
-    output_file = full_results_dir / "rom_results.txt"
-    log_file = full_results_dir / "logs.txt"
+    output_file = full_results_dir / "rom_results.json"
+    log_file = full_results_dir / "logs.json"
 
-    with open(output_file, 'w') as f, open(log_file, 'w') as log:
-        f.write("Joint Range of Motion (ROM) Analysis with Sliding Window\n")
-        f.write("=" * 50 + "\n\n")
-        log.write("Detailed Logs for ROM Calculation\n")
-        log.write("=" * 50 + "\n\n")
+    logs = {"ROM Calculation Logs": []}
 
-        for col in angles_data.columns:
-            if col == 'time':
-                continue
+    for col in angles_data.columns:
+        if col == 'time':
+            continue
 
-            # Apply transformation (180 - angle)
-            angles_data[f'{col}_transformed'] = 180 - angles_data[col]
+        # Apply transformation (180 - angle)
+        angles_data[f'{col}_transformed'] = 180 - angles_data[col]
 
-            # Compute rolling mean over the given window size
-            angles_data[f'{col}_avg'] = angles_data[col].rolling(window=window_size_idx, min_periods=1).mean()
+        # Compute rolling mean over the given window size
+        angles_data[f'{col}_avg'] = angles_data[f'{col}_transformed'].rolling(window=window_size_idx, min_periods=1).mean()
+        # Find min and max from the averaged values
+        min_val = angles_data[f'{col}_avg'].min()
+        max_val = angles_data[f'{col}_avg'].max()
+        rom = max_val - min_val
 
-            # Find min and max from the averaged values
-            min_val = angles_data[f'{col}_avg'].min()
-            max_val = angles_data[f'{col}_avg'].max()
-            rom = max_val - min_val
+        rom_results[col] = {
+            'min': min_val,
+            'max': max_val,
+            'rom': rom
+        }
 
-            rom_results[col] = {
-                'min': min_val,
-                'max': max_val,
-                'rom': rom
-            }
-        
-            output_string = f"ROM for {col}: {rom:.2f} degrees (Min: {min_val:.2f}, Max: {max_val:.2f})"
-            print(output_string)
+        output_string = f"ROM for {col}: {rom:.2f} degrees (Min: {min_val:.2f}, Max: {max_val:.2f})"
+        print(output_string)
 
-            # Write to file
-            f.write(output_string + "\n")
+        logs["ROM Calculation Logs"].append({
+            "joint": col,
+            "min_value": min_val,
+            "max_value": max_val,
+            "rom": rom
+        })
 
-            log.write(f"Processing {col}:\n")
-            log.write(f"  Min Value: {min_val:.2f}\n")
-            log.write(f"  Max Value: {max_val:.2f}\n")
-            log.write(f"  ROM: {rom:.2f} degrees\n\n")
+    # Save results to JSON files
+    with open(output_file, 'w') as f:
+        json.dump(rom_results, f, indent=4)
+
+    with open(log_file, 'w') as log:
+        json.dump(logs, log, indent=4)
 
     print(f"ROM results saved to {output_file}")
     print(f"Detailed logs saved to {log_file}")
