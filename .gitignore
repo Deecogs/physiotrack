@@ -4,6 +4,8 @@ physiotrack/Demo/resutls
 physiotrack/Demo/streamlit_results
 physiotrack/physiotrack/Demo/webcam_*/
 physiotrack/webcam*
+webcam*/
+results/
 __pycache__
 
 *.mp4
@@ -19,7 +21,7 @@ __pycache__/
 *$py.class
 *.so
 .Python
-
+physiotrack_output/
 # Distribution / packaging
 build/
 develop-eggs/

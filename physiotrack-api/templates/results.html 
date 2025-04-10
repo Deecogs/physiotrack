@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PhysioTrack ROM Results</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            padding-top: 20px;
+            padding-bottom: 40px;
+        }
+        .container {
+            max-width: 960px;
+        }
+        .header {
+            margin-bottom: 30px;
+        }
+        .results-container {
+            margin-top: 30px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 20px;
+            background-color: #f9f9f9;
+        }
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-bottom: 20px;
+        }
+        #videoOutput {
+            width: 100%;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header text-center">
+            <h1>PhysioTrack ROM Results</h1>
+            <p class="lead">Range of Motion Analysis Report</p>
+        </div>
+
+        <div class="alert alert-info" id="loadingMessage">
+            Loading results...
+        </div>
+
+        <div id="resultsContainer" class="results-container d-none">
+            <h3>Range of Motion Results <small class="text-muted" id="timestamp"></small></h3>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card mb-3">
+                        <div class="card-header">ROM Summary</div>
+                        <div class="card-body">
+                            <table class="table">
+                                <tbody>
+                                    <tr>
+                                        <th>Test</th>
+                                        <td id="testNameResult"></td>
+                                    </tr>
+                                    <tr>
+                                        <th>Min Angle</th>
+                                        <td id="minAngle"></td>
+                                    </tr>
+                                    <tr>
+                                        <th>Max Angle</th>
+                                        <td id="maxAngle"></td>
+                                    </tr>
+                                    <tr>
+                                        <th>ROM Range</th>
+                                        <td id="romRange"></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="card mb-3">
+                        <div class="card-header">Joint Angles</div>
+                        <div class="card-body" id="jointAngles">
+                            <!-- Joint angles will be displayed here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-12">
+                    <div class="card mb-3">
+                        <div class="card-header">Angle Progression</div>
+                        <div class="card-body">
+                            <div class="chart-container">
+                                <canvas id="angleChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">Processed Video</div>
+                        <div class="card-body">
+                            <video id="videoOutput" controls></video>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Get session ID from URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const sessionId = urlParams.get('session_id');
+            
+            if (!sessionId) {
+                document.getElementById('loadingMessage').className = 'alert alert-danger';
+                document.getElementById('loadingMessage').textContent = 'Error: No session ID provided';
+                return;
+            }
+            
+            // Fetch results for this session
+            fetch(`/status/${sessionId}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.status === 'completed') {
+                        displayResults(data);
+                    } else if (data.status === 'processing') {
+                        document.getElementById('loadingMessage').textContent = 'Processing in progress. Please wait...';
+                        setTimeout(() => location.reload(), 5000); // Refresh after 5 seconds
+                    } else {
+                        document.getElementById('loadingMessage').className = 'alert alert-danger';
+                        document.getElementById('loadingMessage').textContent = data.message || 'An error occurred during processing';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching results:', error);
+                    document.getElementById('loadingMessage').className = 'alert alert-danger';
+                    document.getElementById('loadingMessage').textContent = `Error fetching results: ${error.message}`;
+                });
+            
+            function displayResults(data) {
+                // Hide loading message and show results
+                document.getElementById('loadingMessage').classList.add('d-none');
+                document.getElementById('resultsContainer').classList.remove('d-none');
+                
+                // Add timestamp
+                document.getElementById('timestamp').textContent = new Date().toLocaleString();
+                
+                // Set ROM summary values
+                if (data.final_rom) {
+                    document.getElementById('testNameResult').textContent = data.final_rom.test_name || 'N/A';
+                    document.getElementById('minAngle').textContent = data.final_rom.ROM ? `${data.final_rom.ROM[0].toFixed(1)}°` : 'N/A';
+                    document.getElementById('maxAngle').textContent = data.final_rom.ROM ? `${data.final_rom.ROM[1].toFixed(1)}°` : 'N/A';
+                    document.getElementById('romRange').textContent = data.final_rom.rom_range ? `${data.final_rom.rom_range.toFixed(1)}°` : 'N/A';
+                    
+                    // Display joint angles
+                    const jointAnglesDiv = document.getElementById('jointAngles');
+                    jointAnglesDiv.innerHTML = '';
+                    
+                    if (data.final_rom.angles) {
+                        const anglesList = document.createElement('ul');
+                        anglesList.className = 'list-group';
+                        
+                        for (const [joint, angle] of Object.entries(data.final_rom.angles)) {
+                            const item = document.createElement('li');
+                            item.className = 'list-group-item d-flex justify-content-between align-items-center';
+                            item.innerHTML = `${joint} <span class="badge bg-primary rounded-pill">${angle.toFixed(1)}°</span>`;
+                            anglesList.appendChild(item);
+                        }
+                        
+                        jointAnglesDiv.appendChild(anglesList);
+                    } else {
+                        jointAnglesDiv.textContent = 'No joint angle data available';
+                    }
+                }
+                
+                // Create angle progression chart if we have ROM data
+                if (data.rom_data) {
+                    createAngleChart(data.rom_data);
+                }
+                
+                // Display processed video if available
+                if (data.video_path) {
+                    const videoOutput = document.getElementById('videoOutput');
+                    videoOutput.src = `/static/${data.video_path.split('/').pop()}`;
+                    videoOutput.load();
+                }
+            }
+            
+            function createAngleChart(romData) {
+                const timePoints = Object.keys(romData).sort((a, b) => parseFloat(a) - parseFloat(b));
+                const trunkAngles = [];
+                
+                for (const time of timePoints) {
+                    const data = romData[time];
+                    if (data.angles && data.angles['Trunk']) {
+                        trunkAngles.push({
+                            x: parseFloat(time),
+                            y: data.angles['Trunk']
+                        });
+                    }
+                }
+                
+                // Create chart
+                const ctx = document.getElementById('angleChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        datasets: [{
+                            label: 'Trunk Angle',
+                            data: trunkAngles,
+                            borderColor: 'rgb(75, 192, 192)',
+                            tension: 0.1,
+                            fill: false
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            x: {
+                                type: 'linear',
+                                title: {
+                                    display: true,
+                                    text: 'Time (seconds)'
+                                }
+                            },
+                            y: {
+                                title: {
+                                    display: true,
+                                    text: 'Angle (degrees)'
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>
