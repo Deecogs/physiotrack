@@ -110,3 +110,88 @@ Correcting segment angles by removing the 0.0° floor angle.
 Angles saved to E:\Work\physiotrack\physiotrack\Demo\webcam_20250327_153952\webcam_20250327_153952_angles_person01.mot.
 
 Processing webcam took 79.74 s.
+
+
+---------------------------------------------------------------------
+Processing webcam
+On Tuesday 08. April 2025, 16:50:55
+---------------------------------------------------------------------
+Webcam input: the framerate may vary. If results are filtered, PhysioTrack will use the average framerate as input.
+Using HALPE_26 model (body and feet) for pose estimation.
+
+Valid CUDA installation found: using ONNXRuntime backend with GPU.
+
+Pose tracking set up for "body_with_feet" model.
+Mode: performance.
+
+Persons are detected every 4 frames and tracked inbetween. Multi-person is selected. Tracking is done with physiotrack.
+keypoint_likelihood_threshold=0.3, average_likelihood_threshold=0.5, keypoint_number_threshold=0.3
+Skipping right wrist angle computation because at least one of the following keypoints is not provided by the model: ['RElbow', 'RWrist', 'RIndex'].
+Skipping left wrist angle computation because at least one of the following keypoints is not provided by the model: ['LElbow', 'LWrist', 'LIndex'].
+
+Processing video stream...
+
+
+---------------------------------------------------------------------
+Processing webcam
+On Tuesday 08. April 2025, 17:12:03
+---------------------------------------------------------------------
+Webcam input: the framerate may vary. If results are filtered, PhysioTrack will use the average framerate as input.
+Using HALPE_26 model (body and feet) for pose estimation.
+
+Valid CUDA installation found: using ONNXRuntime backend with GPU.
+
+Pose tracking set up for "body_with_feet" model.
+Mode: performance.
+
+Persons are detected every 4 frames and tracked inbetween. Multi-person is selected. Tracking is done with physiotrack.
+keypoint_likelihood_threshold=0.3, average_likelihood_threshold=0.5, keypoint_number_threshold=0.3
+Skipping right wrist angle computation because at least one of the following keypoints is not provided by the model: ['RElbow', 'RWrist', 'RIndex'].
+Skipping left wrist angle computation because at least one of the following keypoints is not provided by the model: ['LElbow', 'LWrist', 'LIndex'].
+
+Processing video stream...
+
+
+---------------------------------------------------------------------
+Processing webcam
+On Thursday 10. April 2025, 14:52:11
+---------------------------------------------------------------------
+Webcam input: the framerate may vary. If results are filtered, PhysioTrack will use the average framerate as input.
+Using HALPE_26 model (body and feet) for pose estimation.
+
+Valid CUDA installation found: using ONNXRuntime backend with GPU.
+
+Pose tracking set up for "body_with_feet" model.
+Mode: performance.
+
+Persons are detected every 4 frames and tracked inbetween. Multi-person is selected. Tracking is done with physiotrack.
+keypoint_likelihood_threshold=0.3, average_likelihood_threshold=0.5, keypoint_number_threshold=0.3
+Skipping right wrist angle computation because at least one of the following keypoints is not provided by the model: ['RElbow', 'RWrist', 'RIndex'].
+Skipping left wrist angle computation because at least one of the following keypoints is not provided by the model: ['LElbow', 'LWrist', 'LIndex'].
+
+Processing video stream...
+Video processing completed.
+Rewriting webcam video based on the average framerate 7.1626050251844635.
+Processed video saved to E:\Work\physiotrack\physiotrack\Demo\webcam_20250410_145211\webcam_20250410_145211.mp4.
+
+Post-processing pose:
+- Person 0: Interpolating missing sequences if they are smaller than 10 frames. Large gaps filled with last_value.
+Filtering with Butterworth filter, 4th order, 3.579512756214125 Hz.
+Pose in pixels saved to E:\Work\physiotrack\physiotrack\Demo\webcam_20250410_145211\webcam_20250410_145211_px_person00.trc.
+
+Converting pose to meters:
+Person #2 not detected in the video. Calibrating on person #0 instead.
+Could not estimate the floor angle and xy_origin for person 0. Make sure that the full body is visible. Using floor angle = 0° and xy_origin = [640.0, 360.0] px.
+Using height of person #0 (1.65m) to convert coordinates in meters. Floor angle: auto (estimation: 0.0°), xy_origin: auto (estimation: [640, 360]) px.
+- Person 0: Seen from the front.
+Pose in meters saved to E:\Work\physiotrack\physiotrack\Demo\webcam_20250410_145211\webcam_20250410_145211_m_person00.trc. Also saved in c3d format.
+
+Post-processing angles:
+- Person 0: Interpolating missing sequences if they are smaller than 10 frames. Large gaps filled with last_value.
+Filtering with Butterworth filter, 4th order, 3.579512756214125 Hz.
+Correcting segment angles by removing the 0.0° floor angle.
+Angles saved to E:\Work\physiotrack\physiotrack\Demo\webcam_20250410_145211\webcam_20250410_145211_angles_person00.mot.
+ROM for trunk: 31.51 degrees (Min: 68.61, Max: 100.12)
+ROM data saved to E:\Work\physiotrack\physiotrack\Demo\webcam_20250410_145211\webcam_20250410_145211_angles_person00_rom_data.json.
+
+Processing webcam took 53.30 s.
