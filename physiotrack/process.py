@@ -285,7 +285,7 @@ def compute_angle(ang_name, person_X_flipped, person_Y, angle_dict, keypoints_id
     - keypoints_ids: list of keypoint ids (see skeletons.py)
     - keypoints_names: list of keypoint names (see skeletons.py)
 
-    OUTPUTS:
+    OUTPUT:
     - ang: float. The computed angle
     '''
 
@@ -329,10 +329,83 @@ def draw_dotted_line(img, start, direction, length, color=(0, 255, 0), gap=7, do
         cv2.line(img, tuple(line_start.astype(int)), tuple(line_end.astype(int)), color, thickness)
 
 
-def draw_angles(img, valid_X, valid_Y, valid_angles, valid_X_flipped, keypoints_ids, keypoints_names, angle_names, display_angle_values_on= ['body', 'list'], colors=[(255, 0, 0), (0, 255, 0), (0, 0, 255)], fontSize=0.3, thickness=1):
+# def draw_angles(img, valid_X, valid_Y, valid_angles, valid_X_flipped, keypoints_ids, keypoints_names, angle_names, display_angle_values_on= ['body', 'list'], colors=[(255, 0, 0), (0, 255, 0), (0, 0, 255)], fontSize=0.3, thickness=1):
+#     '''
+#     Draw angles on the image.
+#     Angles are displayed as a list on the image and/or on the body.
+
+#     INPUTS:
+#     - img: opencv image
+#     - valid_X: list of list of x coordinates
+#     - valid_Y: list of list of y coordinates
+#     - valid_angles: list of list of angles
+#     - valid_X_flipped: list of list of x coordinates after flipping if needed
+#     - keypoints_ids: list of keypoint ids (see skeletons.py)
+#     - keypoints_names: list of keypoint names (see skeletons.py)
+#     - angle_names: list of angle names
+#     - display_angle_values_on: list of str. 'body' and/or 'list'
+#     - colors: list of colors to cycle through
+
+#     OUTPUT:
+#     - img: image with angles
+#     '''
+
+#     color_cycle = it.cycle(colors)
+#     for person_id, (X,Y,angles, X_flipped) in enumerate(zip(valid_X, valid_Y, valid_angles, valid_X_flipped)):
+#         c = next(color_cycle)
+#         if not np.isnan(X).all():
+#             # person label
+#             if 'list' in display_angle_values_on:
+#                 person_label_position = (int(10 + fontSize*150/0.3*person_id), int(fontSize*50))
+#                 cv2.putText(img, f'person {person_id}', person_label_position, cv2.FONT_HERSHEY_SIMPLEX, fontSize+0.2, (255,255,255), thickness+1, cv2.LINE_AA)
+#                 cv2.putText(img, f'person {person_id}', person_label_position, cv2.FONT_HERSHEY_SIMPLEX, fontSize+0.2, c, thickness, cv2.LINE_AA)
+            
+#             # angle lines, names and values
+#             ang_label_line = 1
+#             for k, ang in enumerate(angles):
+#                 if not np.isnan(ang):
+#                     ang_name = angle_names[k]
+#                     ang_params = angle_dict.get(ang_name)
+#                     if ang_params is not None:
+#                         kpts = ang_params[0]
+#                         if not any(item not in keypoints_names+['Neck', 'Hip'] for item in kpts):
+#                             ang_coords = np.array([[X[keypoints_ids[keypoints_names.index(kpt)]], Y[keypoints_ids[keypoints_names.index(kpt)]]] for kpt in ang_params[0] if kpt in keypoints_names])
+#                             X_flipped = np.append(X_flipped, X[len(X_flipped):])
+#                             X_flipped_coords = [X_flipped[keypoints_ids[keypoints_names.index(kpt)]] for kpt in ang_params[0] if kpt in keypoints_names]
+#                             flip = -1 if any(x_flipped < 0 for x_flipped in X_flipped_coords) else 1
+#                             flip = 1 if ang_name in ['pelvis', 'trunk', 'shoulders'] else flip
+#                             right_angle = True if ang_params[2]==90 else False
+                            
+#                             # Draw angle
+#                             if len(ang_coords) == 2: # segment angle
+#                                 app_point, vec = draw_segment_angle(img, ang_coords, flip)
+#                             else: # joint angle
+#                                 app_point, vec1, vec2 = draw_joint_angle(img, ang_coords, flip, right_angle)
+        
+#                             # Write angle on body
+#                             if 'body' in display_angle_values_on:
+#                                 if len(ang_coords) == 2: # segment angle
+#                                     write_angle_on_body(img, ang, app_point, vec, np.array([1,0]), dist=20, color=(255,255,255), fontSize=fontSize, thickness=thickness)
+#                                 else: # joint angle
+#                                     write_angle_on_body(img, ang, app_point, vec1, vec2, dist=40, color=(0,255,0), fontSize=fontSize, thickness=thickness)
+
+#                             # Write angle as a list on image with progress bar
+#                             if 'list' in display_angle_values_on:
+#                                 if len(ang_coords) == 2: # segment angle
+#                                     ang_label_line = write_angle_as_list(img, ang, ang_name, person_label_position, ang_label_line, color = (255,255,255), fontSize=fontSize, thickness=thickness)
+#                                 else:
+#                                     ang_label_line = write_angle_as_list(img, ang, ang_name, person_label_position, ang_label_line, color = (0,255,0), fontSize=fontSize, thickness=thickness)
+
+#     return img
+
+def draw_angles(img, valid_X, valid_Y, valid_angles, valid_X_flipped, keypoints_ids, keypoints_names, angle_names, display_angle_values_on=['body', 'list'], colors=[(255, 0, 0)], fontSize=0.3, thickness=1, rom_data=None):
     '''
-    Draw angles on the image.
-    Angles are displayed as a list on the image and/or on the body.
+    Draw only the relevant angles on the image.
+    Angles: 
+    - Right Hip
+    - Left Hip
+    - Right Knee
+    - Left Knee
 
     INPUTS:
     - img: opencv image
@@ -343,61 +416,86 @@ def draw_angles(img, valid_X, valid_Y, valid_angles, valid_X_flipped, keypoints_
     - keypoints_ids: list of keypoint ids (see skeletons.py)
     - keypoints_names: list of keypoint names (see skeletons.py)
     - angle_names: list of angle names
-    - display_angle_values_on: list of str. 'body' and/or 'list'
+    - display_angle_values_on: list of str. 'body' and/or 'list' (display angles on the body)
     - colors: list of colors to cycle through
 
     OUTPUT:
     - img: image with angles
     '''
 
+     # Define the relevant angles based on the console output
+    relevant_angle_names = {
+        "right knee",
+        "left knee",
+        "right hip",
+        "left hip"
+    }
+
     color_cycle = it.cycle(colors)
-    for person_id, (X,Y,angles, X_flipped) in enumerate(zip(valid_X, valid_Y, valid_angles, valid_X_flipped)):
+    for person_id, (X, Y, angles, X_flipped) in enumerate(zip(valid_X, valid_Y, valid_angles, valid_X_flipped)):
         c = next(color_cycle)
+
         if not np.isnan(X).all():
             # person label
-            if 'list' in display_angle_values_on:
-                person_label_position = (int(10 + fontSize*150/0.3*person_id), int(fontSize*50))
-                cv2.putText(img, f'person {person_id}', person_label_position, cv2.FONT_HERSHEY_SIMPLEX, fontSize+0.2, (255,255,255), thickness+1, cv2.LINE_AA)
-                cv2.putText(img, f'person {person_id}', person_label_position, cv2.FONT_HERSHEY_SIMPLEX, fontSize+0.2, c, thickness, cv2.LINE_AA)
-            
-            # angle lines, names and values
-            ang_label_line = 1
+            # if 'list' in display_angle_values_on:
+            #     person_label_position = (int(10 + fontSize*150/0.3*person_id), int(fontSize*50))
+            #     cv2.putText(img, f'person {person_id}', person_label_position, cv2.FONT_HERSHEY_SIMPLEX, fontSize+0.2, (255,255,255), thickness+1, cv2.LINE_AA)
+            #     cv2.putText(img, f'person {person_id}', person_label_position, cv2.FONT_HERSHEY_SIMPLEX, fontSize+0.2, c, thickness, cv2.LINE_AA)
+
+            #     ang_label_line = 1  # Init line counter for the angle list
+
+            # Angle lines, names, and values
+            # print(f"Writing angles on the image for person {person_id}")
+
             for k, ang in enumerate(angles):
                 if not np.isnan(ang):
                     ang_name = angle_names[k]
-                    ang_params = angle_dict.get(ang_name)
-                    if ang_params is not None:
-                        kpts = ang_params[0]
-                        if not any(item not in keypoints_names+['Neck', 'Hip'] for item in kpts):
-                            ang_coords = np.array([[X[keypoints_ids[keypoints_names.index(kpt)]], Y[keypoints_ids[keypoints_names.index(kpt)]]] for kpt in ang_params[0] if kpt in keypoints_names])
-                            X_flipped = np.append(X_flipped, X[len(X_flipped):])
-                            X_flipped_coords = [X_flipped[keypoints_ids[keypoints_names.index(kpt)]] for kpt in ang_params[0] if kpt in keypoints_names]
-                            flip = -1 if any(x_flipped < 0 for x_flipped in X_flipped_coords) else 1
-                            flip = 1 if ang_name in ['pelvis', 'trunk', 'shoulders'] else flip
-                            right_angle = True if ang_params[2]==90 else False
-                            
-                            # Draw angle
-                            if len(ang_coords) == 2: # segment angle
-                                app_point, vec = draw_segment_angle(img, ang_coords, flip)
-                            else: # joint angle
-                                app_point, vec1, vec2 = draw_joint_angle(img, ang_coords, flip, right_angle)
-        
-                            # Write angle on body
-                            if 'body' in display_angle_values_on:
-                                if len(ang_coords) == 2: # segment angle
-                                    write_angle_on_body(img, ang, app_point, vec, np.array([1,0]), dist=20, color=(255,255,255), fontSize=fontSize, thickness=thickness)
-                                else: # joint angle
-                                    write_angle_on_body(img, ang, app_point, vec1, vec2, dist=40, color=(0,255,0), fontSize=fontSize, thickness=thickness)
+                    # print(f"Processing angle: {ang_name}")
 
-                            # Write angle as a list on image with progress bar
-                            if 'list' in display_angle_values_on:
-                                if len(ang_coords) == 2: # segment angle
-                                    ang_label_line = write_angle_as_list(img, ang, ang_name, person_label_position, ang_label_line, color = (255,255,255), fontSize=fontSize, thickness=thickness)
-                                else:
-                                    ang_label_line = write_angle_as_list(img, ang, ang_name, person_label_position, ang_label_line, color = (0,255,0), fontSize=fontSize, thickness=thickness)
+                    if ang_name in relevant_angle_names:  # Only process relevant angles
+                        ang_params = angle_dict.get(ang_name)
+                        if ang_params is None:
+                            # print(f"Angle {ang_name} not found in angle_dict!")
+                            continue
+
+                        # print(f"Angle parameters: {ang_params}")
+                        keypoints = ang_params[0]
+                        # print(f"Keypoints: {keypoints}")
+
+                        if not any(kpt not in keypoints_names for kpt in keypoints):
+                            ang_coords = np.array([
+                                [X[keypoints_ids[keypoints_names.index(kpt)]], Y[keypoints_ids[keypoints_names.index(kpt)]]]
+                                for kpt in keypoints if kpt in keypoints_names
+                            ])
+
+                            # Draw angle
+                            if len(ang_coords) == 2:  # Segment angle
+                                app_point, vec = draw_segment_angle(img, ang_coords, flip=1)
+                                write_angle_on_body(img, ang, app_point, vec, np.array([1, 0]), dist=20, color=(255, 255, 255), fontSize=fontSize, thickness=thickness)
+                            else:  # Joint angle
+                                app_point, vec1, vec2 = draw_joint_angle(img, ang_coords, flip=1, right_angle=False)
+                                write_angle_on_body(img, ang, app_point, vec1, vec2, dist=40, color=(0, 255, 0), fontSize=fontSize, thickness=thickness)
+
+                        # if 'list' in display_angle_values_on and rom_data:
+                        #     rom_fields = [
+                        #         f"Test: {rom_data.get('test', '')}",
+                        #         f"Ready: {rom_data.get('is_ready', False)}",
+                        #         f"Trunk Angle: {rom_data.get('trunk', 'N/A')}",
+                        #         f"ROM: {rom_data.get('ROM', ['N/A', 'N/A'])}",
+                        #         f"ROM Range: {rom_data.get('rom_range', 'N/A')}",
+                        #         f"Valid Position: {rom_data.get('position_valid', False)}",
+                        #         f"Guidance: {rom_data.get('guidance', '')}",
+                        #         f"Posture: {rom_data.get('posture_message', '')}",
+                        #         f"Progress: {rom_data.get('ready_progress', 0)}%",
+                        #         f"Status: {rom_data.get('status', '')}"
+                        #     ]
+
+    # for line, text in enumerate(rom_fields, start=1):
+    #     text_position = (person_label_position[0], person_label_position[1] + int(line * 40 * fontSize))
+    #     cv2.putText(img, text, text_position, cv2.FONT_HERSHEY_SIMPLEX, fontSize, (0,0,0), thickness+1, cv2.LINE_AA)
+    #     cv2.putText(img, text, text_position, cv2.FONT_HERSHEY_SIMPLEX, fontSize, c, thickness, cv2.LINE_AA)
 
     return img
-
 
 def draw_segment_angle(img, ang_coords, flip):
     '''
@@ -504,47 +602,47 @@ def write_angle_on_body(img, ang, app_point, vec1, vec2, dist=40, color=(255,255
     cv2.putText(img, f'{ang:.1f}', text_position, cv2.FONT_HERSHEY_SIMPLEX, fontSize, color, thickness, cv2.LINE_AA)
 
 
-def write_angle_as_list(img, ang, ang_name, person_label_position, ang_label_line, color=(255,255,255), fontSize=0.3, thickness=1):
-    '''
-    Write the angle as a list on the image with a progress bar.
+# def write_angle_as_list(img, ang, ang_name, person_label_position, ang_label_line, color=(255,255,255), fontSize=0.3, thickness=1):
+#     '''
+#     Write the angle as a list on the image with a progress bar.
 
-    INPUTS:
-    - img: opencv image
-    - ang: float. The value of the angle to display
-    - ang_name: str. The name of the angle
-    - person_label_position: tuple. The position of the person label
-    - ang_label_line: int. The line where to write the angle
-    - color: tuple. The color of the angle
+#     INPUTS:
+#     - img: opencv image
+#     - ang: float. The value of the angle to display
+#     - ang_name: str. The name of the angle
+#     - person_label_position: tuple. The position of the person label
+#     - ang_label_line: int. The line where to write the angle
+#     - color: tuple. The color of the angle
 
-    OUTPUT:
-    - ang_label_line: int. The updated line where to write the next angle
-    - img: image with the angle
-    '''
+#     OUTPUT:
+#     - ang_label_line: int. The updated line where to write the next angle
+#     - img: image with the angle
+#     '''
     
-    if not np.any(np.isnan(ang)):
-        # angle names and values
-        ang_label_position = (person_label_position[0], person_label_position[1]+int((ang_label_line)*40*fontSize))
-        ang_value_position = (ang_label_position[0]+int(250*fontSize), ang_label_position[1])
-        cv2.putText(img, f'{ang_name}:', ang_label_position, cv2.FONT_HERSHEY_SIMPLEX, fontSize, (0, 0, 0), thickness+1, cv2.LINE_AA)
-        cv2.putText(img, f'{ang_name}:', ang_label_position, cv2.FONT_HERSHEY_SIMPLEX, fontSize, color, thickness, cv2.LINE_AA)
-        cv2.putText(img, f'{ang:.1f}', ang_value_position, cv2.FONT_HERSHEY_SIMPLEX, fontSize, (0, 0, 0), thickness+1, cv2.LINE_AA)
-        cv2.putText(img, f'{ang:.1f}', ang_value_position, cv2.FONT_HERSHEY_SIMPLEX, fontSize, color, thickness, cv2.LINE_AA)
+#     if not np.any(np.isnan(ang)):
+#         # angle names and values
+#         ang_label_position = (person_label_position[0], person_label_position[1]+int((ang_label_line)*40*fontSize))
+#         ang_value_position = (ang_label_position[0]+int(250*fontSize), ang_label_position[1])
+#         cv2.putText(img, f'{ang_name}:', ang_label_position, cv2.FONT_HERSHEY_SIMPLEX, fontSize, (0, 0, 0), thickness+1, cv2.LINE_AA)
+#         cv2.putText(img, f'{ang_name}:', ang_label_position, cv2.FONT_HERSHEY_SIMPLEX, fontSize, color, thickness, cv2.LINE_AA)
+#         cv2.putText(img, f'{ang:.1f}', ang_value_position, cv2.FONT_HERSHEY_SIMPLEX, fontSize, (0, 0, 0), thickness+1, cv2.LINE_AA)
+#         cv2.putText(img, f'{ang:.1f}', ang_value_position, cv2.FONT_HERSHEY_SIMPLEX, fontSize, color, thickness, cv2.LINE_AA)
         
-        # progress bar
-        ang_percent = int(ang*50/180)
-        y_crop, y_crop_end = ang_value_position[1] - int(35*fontSize), ang_value_position[1]
-        x_crop, x_crop_end = ang_label_position[0]+int(300*fontSize), ang_label_position[0]+int(300*fontSize)+int(ang_percent*fontSize/0.3)
-        if ang_percent < 0:
-            x_crop, x_crop_end = x_crop_end, x_crop
-        img_crop = img[y_crop:y_crop_end, x_crop:x_crop_end]
-        if img_crop.size>0:
-            white_rect = np.ones(img_crop.shape, dtype=np.uint8)*255
-            alpha_rect = cv2.addWeighted(img_crop, 0.6, white_rect, 0.4, 1.0)
-            img[y_crop:y_crop_end, x_crop:x_crop_end] = alpha_rect
+#         # progress bar
+#         ang_percent = int(ang*50/180)
+#         y_crop, y_crop_end = ang_value_position[1] - int(35*fontSize), ang_value_position[1]
+#         x_crop, x_crop_end = ang_label_position[0]+int(300*fontSize), ang_label_position[0]+int(300*fontSize)+int(ang_percent*fontSize/0.3)
+#         if ang_percent < 0:
+#             x_crop, x_crop_end = x_crop_end, x_crop
+#         img_crop = img[y_crop:y_crop_end, x_crop:x_crop_end]
+#         if img_crop.size>0:
+#             white_rect = np.ones(img_crop.shape, dtype=np.uint8)*255
+#             alpha_rect = cv2.addWeighted(img_crop, 0.6, white_rect, 0.4, 1.0)
+#             img[y_crop:y_crop_end, x_crop:x_crop_end] = alpha_rect
 
-        ang_label_line += 1
+#         ang_label_line += 1
     
-    return ang_label_line
+#     return ang_label_line
 
 
 def load_pose_file(Q_coords):
@@ -655,6 +753,128 @@ def make_mot_with_angles(angles, time, mot_path):
 
     return angles
 
+def generate_rom_data(angle_data, test_name, rom_path):
+    '''
+    Generate a ROM data json file from angle data, with data for each frame/time point.
+    
+    INPUTS:
+    - angle_data: pd.DataFrame. The angles data with time column and angle columns
+    - test_name: str. The name of the test (e.g., 'lower_back_flexion')
+    - rom_path: str. The path where to save the ROM data json file
+    
+    OUTPUT:
+    - rom_data: dict. The ROM data that has been written to the json file
+    '''
+    import json
+    import numpy as np
+    
+    # Initialize the ROM data structure
+    rom_data = {}
+    
+    # Calculate window size in seconds and convert to indices
+    window_size = 0.4  # seconds
+    if 'trunk' in angle_data.columns:
+        time_step = angle_data['time'].iloc[1] - angle_data['time'].iloc[0]
+        window_size_idx = int(window_size / time_step)
+        
+        # Apply transformation (180 - angle) as in test_rom_analysis.py
+        transformed_angles = 180 - angle_data['trunk']
+        
+        # Compute rolling mean over the window
+        smoothed_angles = transformed_angles.rolling(window=window_size_idx, min_periods=1).mean()
+        
+        # Calculate the running min/max values and ROM at each time point
+        running_min = np.zeros(len(smoothed_angles))
+        running_max = np.zeros(len(smoothed_angles))
+        running_rom = np.zeros(len(smoothed_angles))
+        
+        for i in range(len(smoothed_angles)):
+            # Consider all angles from start up to current point
+            current_segment = smoothed_angles.iloc[0:i+1]
+            
+            if not current_segment.empty:
+                # Calculate min, max and rom from start to current point
+                current_min = current_segment.min()
+                current_max = current_segment.max()
+                current_rom = current_max - current_min
+                
+                running_min[i] = current_min
+                running_max[i] = current_max
+                running_rom[i] = current_rom
+    
+    # Process each time point/frame
+    for idx, row in angle_data.iterrows():
+        time_val = str(round(row['time'], 3))  # Use time as key, rounded to 3 decimal places
+        
+        # Initialize angles dict for this time point
+        angles_dict = {}
+        
+        # Collect all angles for this time point
+        for col in angle_data.columns:
+            if col == 'time':
+                continue
+            
+            # Add angle to the angles dictionary
+            angles_dict[col] = float(round(row[col], 1))
+        
+        # Default ROM values
+        rom_min = 0.0
+        rom_max = 0.0
+        rom_range = 0.0
+        
+        # Set ROM values if trunk angle is available and we've calculated them
+        if 'trunk' in angle_data.columns and idx < len(running_rom):
+            rom_min = float(running_min[idx])
+            rom_max = float(running_max[idx])
+            rom_range = float(running_rom[idx])
+            
+        # Create entry for this time point with all angles together
+        rom_data[time_val] = {
+            "test": test_name,
+            "is_ready": True,
+            "angles": angles_dict,
+            "ROM": [rom_min, rom_max],  # Update with calculated values for trunk
+            "rom_range": rom_range,  # Update with calculated ROM for trunk
+            "position_valid": True,
+            "guidance": "Good posture",
+            "posture_message": "Good posture",
+            "ready_progress": 100,
+            "status": "success"
+        }
+    
+    # Log the final ROM calculation
+    if 'trunk' in angle_data.columns and len(running_rom) > 0:
+        final_rom = running_rom[-1]
+        final_min = running_min[-1]
+        final_max = running_max[-1]
+        logging.info(f"ROM for trunk: {final_rom:.2f} degrees (Min: {final_min:.2f}, Max: {final_max:.2f})")
+    
+    # Write to JSON file
+    with open(rom_path, 'w') as json_file:
+        json.dump(rom_data, json_file, indent=4)
+    
+    logging.info(f'ROM data saved to {rom_path}.')
+    return rom_data
+
+def read_rom_data(rom_path):
+    '''
+    Read ROM data from a json file.
+    
+    INPUTS:
+    - rom_path: str. The path to the ROM data json file
+    
+    OUTPUT:
+    - rom_data: dict. The ROM data read from the json file
+    '''
+    import json
+    
+    try:
+        with open(rom_path, 'r') as json_file:
+            rom_data = json.load(json_file)
+        return rom_data
+    except Exception as e:
+        logging.error(f'Error reading ROM data from {rom_path}: {e}')
+        return {}
 
 def pose_plots(trc_data_unfiltered, trc_data, person_id):
     '''
@@ -1515,6 +1735,11 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                 # Build mot file
                 angle_data = make_mot_with_angles(all_frames_angles_person_filt, all_frames_time, str(angles_path_person))
                 logging.info(f'Angles saved to {angles_path_person.resolve()}.')
+
+                # Generate ROM data
+                rom_path = angles_path_person.parent / (angles_path_person.stem + '_rom_data.json')
+                test_name = 'lower_back_flexion'  # Default test name, can be parameterized in config
+                generate_rom_data(angle_data, test_name, str(rom_path))
 
                 # Plotting angles before and after interpolation and filtering
                 if show_plots:

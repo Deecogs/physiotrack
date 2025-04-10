@@ -161,10 +161,25 @@ def main():
     
     # Calculate ROM for each joint
     rom_results = {}
+    rom_data = {}
 
     # Define the output file path
     output_file = full_results_dir / "rom_results.json"
     log_file = full_results_dir / "logs.json"
+    rom_data_file = full_results_dir / "rom_data.json"
+
+    # rom_data = {
+    #             "test": "lower_back_flexion",
+    #             "is_ready": self.is_ready,
+    #             "trunk_angle": round(trunk_angle, 1),
+    #             "ROM": [round(self.min_angle, 1), round(self.max_angle, 1)],
+    #             "rom_range": round(rom_range, 1),
+    #             "position_valid": is_valid_position,
+    #             "guidance": guidance_message,
+    #             "posture_message": posture_message,
+    #             "ready_progress": round((self.ready_time / self.required_ready_time) * 100, 0),
+    #             "status": "success"
+    #         }
 
     logs = {"ROM Calculation Logs": []}
 
@@ -188,6 +203,20 @@ def main():
             'rom': rom
         }
 
+
+        rom_data[col] = {
+            "test": "lower_back_flexion",
+            "is_ready": True,
+            # "trunk_angle": round(angles_data[f'{col}_transformed'], 1),
+            "ROM": [round(min_val, 1), round(max_val, 1)],
+            "rom_range": round(rom, 1),
+            "position_valid": True,
+            "guidance": "Good posture",
+            "posture_message": "Good posture",
+            "ready_progress": 100,
+            "status": "success"
+        }
+
         output_string = f"ROM for {col}: {rom:.2f} degrees (Min: {min_val:.2f}, Max: {max_val:.2f})"
         print(output_string)
 
@@ -201,6 +230,9 @@ def main():
     # Save results to JSON files
     with open(output_file, 'w') as f:
         json.dump(rom_results, f, indent=4)
+
+    with open(rom_data_file, 'w') as f:
+        json.dump(rom_data, f, indent=4)
 
     with open(log_file, 'w') as log:
         json.dump(logs, log, indent=4)
