@@ -6,6 +6,7 @@ from pydantic import BaseModel
 import uvicorn
 import os
 import json
+import base64
 import tempfile
 import uuid
 import shutil
@@ -96,7 +97,7 @@ def create_config(video_path, result_dir, options, is_webcam=False):
             'result_dir': str(result_dir)
         },
         'pose': {
-            'pose_model': options.get('pose_model', 'body_with_feet'),
+            'pose_model': 'body_with_feet',
             'mode': options.get('mode', 'performance'),
             'det_frequency': options.get('det_frequency', 4),
             'device': 'auto',
