@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PhysioTrack Video Analysis</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f7fa;
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .container {
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+        input[type="file"],
+        input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        input[type="file"] {
+            padding: 10px 0;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            display: block;
+            width: 100%;
+            max-width: 300px;
+            margin: 20px auto 0;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        .progress-container {
+            margin-top: 20px;
+            display: none;
+        }
+        .progress-bar {
+            height: 20px;
+            background-color: #e0e0e0;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            overflow: hidden;
+        }
+        .progress {
+            height: 100%;
+            background-color: #3498db;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        .status {
+            text-align: center;
+            font-weight: 600;
+        }
+        .result-container {
+            margin-top: 30px;
+            display: none;
+        }
+        .result-video {
+            max-width: 100%;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .rom-summary {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .error-message {
+            background-color: #fee;
+            color: #c0392b;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 20px;
+            display: none;
+        }
+        .instructions {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #f0f7ff;
+            border-left: 4px solid #3498db;
+            border-radius: 4px;
+        }
+        pre {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        code {
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <h1>PhysioTrack Video Analysis</h1>
+    
+    <div class="container">
+        <div class="instructions">
+            <h3>Instructions</h3>
+            <p>Upload a video to analyze range of motion (ROM) data using PhysioTrack:</p>
+            <ol>
+                <li>Select a video file (MP4 format recommended)</li>
+                <li>Enter the person's height in meters (used for scaling)</li>
+                <li>Click "Process Video" and wait for the analysis to complete</li>
+            </ol>
+            <p>The system will process the video and return ROM data, a processed video with overlays, and a summary of the range of motion.</p>
+        </div>
+
+        <form id="uploadForm" enctype="multipart/form-data">
+            <div class="form-group">
+                <label for="videoFile">Video File:</label>
+                <input type="file" id="videoFile" name="file" accept="video/*" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="heightMeters">Person's Height (meters):</label>
+                <input type="number" id="heightMeters" name="height_meters" step="0.01" min="0.5" max="2.5" value="1.70" required>
+            </div>
+            
+            <button type="submit" id="submitBtn">Process Video</button>
+        </form>
+        
+        <div class="progress-container" id="progressContainer">
+            <div class="progress-bar">
+                <div class="progress" id="progressBar"></div>
+            </div>
+            <div class="status" id="status">Processing video...</div>
+        </div>
+        
+        <div class="error-message" id="errorMessage"></div>
+    </div>
+    
+    <div class="container result-container" id="resultContainer">
+        <h2>Analysis Results</h2>
+        
+        <h3>Processed Video</h3>
+        <video class="result-video" id="resultVideo" controls></video>
+        
+        <h3>ROM Summary</h3>
+        <div class="rom-summary" id="romSummary"></div>
+        
+        <h3>Full ROM Data</h3>
+        <pre id="romData"><code>Loading ROM data...</code></pre>
+    </div>
+    
+    <script>
+        document.getElementById('uploadForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const form = new FormData(this);
+            const submitBtn = document.getElementById('submitBtn');
+            const progressContainer = document.getElementById('progressContainer');
+            const progressBar = document.getElementById('progressBar');
+            const status = document.getElementById('status');
+            const errorMessage = document.getElementById('errorMessage');
+            const resultContainer = document.getElementById('resultContainer');
+            
+            // Reset UI
+            errorMessage.style.display = 'none';
+            resultContainer.style.display = 'none';
+            
+            // Show progress
+            submitBtn.disabled = true;
+            progressContainer.style.display = 'block';
+            status.textContent = 'Uploading video...';
+            progressBar.style.width = '10%';
+            
+            try {
+                // Simulate progress while waiting for the server
+                let progress = 10;
+                const progressInterval = setInterval(() => {
+                    if (progress < 90) {
+                        progress += 2;
+                        progressBar.style.width = progress + '%';
+                        if (progress > 20) {
+                            status.textContent = 'Processing video with PhysioTrack...';
+                        }
+                    }
+                }, 1000);
+                
+                // Send the form data
+                const response = await fetch('/process-video/', {
+                    method: 'POST',
+                    body: form
+                });
+                
+                clearInterval(progressInterval);
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || 'Error processing video');
+                }
+                
+                // Complete progress bar
+                progressBar.style.width = '100%';
+                status.textContent = 'Processing complete!';
+                
+                // Get the data
+                const data = await response.json();
+                const sessionId = data.session_id;
+                
+                // Display the results
+                resultContainer.style.display = 'block';
+                
+                // Set video source
+                const resultVideo = document.getElementById('resultVideo');
+                resultVideo.src = `/results/${sessionId}/video`;
+                
+                // Get ROM summary
+                const summaryResponse = await fetch(`/results/${sessionId}/summary`);
+                const summaryData = await summaryResponse.json();
+                
+                // Display ROM summary
+                const romSummary = document.getElementById('romSummary');
+                let summaryHTML = '<table style="width:100%; border-collapse: collapse;">';
+                summaryHTML += '<tr><th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Joint</th>' +
+                               '<th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Min (°)</th>' +
+                               '<th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Max (°)</th>' +
+                               '<th style="border: 1px solid #ddd; padding: 8px; text-align: left;">ROM (°)</th></tr>';
+                
+                for (const [joint, values] of Object.entries(summaryData)) {
+                    summaryHTML += `<tr>
+                        <td style="border: 1px solid #ddd; padding: 8px;">${joint}</td>
+                        <td style="border: 1px solid #ddd; padding: 8px;">${values.min.toFixed(1)}</td>
+                        <td style="border: 1px solid #ddd; padding: 8px;">${values.max.toFixed(1)}</td>
+                        <td style="border: 1px solid #ddd; padding: 8px;">${values.rom.toFixed(1)}</td>
+                    </tr>`;
+                }
+                summaryHTML += '</table>';
+                romSummary.innerHTML = summaryHTML;
+                
+                // Display full ROM data
+                const romData = document.getElementById('romData');
+                romData.textContent = JSON.stringify(data.rom_data, null, 2);
+                
+            } catch (error) {
+                console.error('Error:', error);
+                errorMessage.textContent = error.message || 'An error occurred during processing';
+                errorMessage.style.display = 'block';
+                progressBar.style.width = '0%';
+                status.textContent = 'Processing failed';
+            } finally {
+                submitBtn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>
