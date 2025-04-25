@@ -84,7 +84,7 @@ def generate_rom_data(angle_data, test_name, rom_path):
     
     # Calculate window size in seconds and convert to indices
     window_size = 0.4  # seconds
-    if 'trunk' in angle_data.columns:
+    if 'trunk' in angle_data.columns and len(angle_data) > 1:
         time_step = angle_data['time'].iloc[1] - angle_data['time'].iloc[0]
         window_size_idx = int(window_size / time_step)
         
@@ -112,7 +112,11 @@ def generate_rom_data(angle_data, test_name, rom_path):
                 running_min[i] = current_min
                 running_max[i] = current_max
                 running_rom[i] = current_rom
-    
+    else:
+        running_min = np.zeros(len(angle_data))
+        running_max = np.zeros(len(angle_data))
+        running_rom = np.zeros(len(angle_data))
+
     # Process each time point/frame
     for idx, row in angle_data.iterrows():
         time_val = str(round(row['time'], 3))  # Use time as key, rounded to 3 decimal places
@@ -409,16 +413,6 @@ def draw_angles(img, valid_X, valid_Y, valid_angles, valid_X_flipped, keypoints_
         c = next(color_cycle)
 
         if not np.isnan(X).all():
-            # person label
-            # if 'list' in display_angle_values_on:
-            #     person_label_position = (int(10 + fontSize*150/0.3*person_id), int(fontSize*50))
-            #     cv2.putText(img, f'person {person_id}', person_label_position, cv2.FONT_HERSHEY_SIMPLEX, fontSize+0.2, (255,255,255), thickness+1, cv2.LINE_AA)
-            #     cv2.putText(img, f'person {person_id}', person_label_position, cv2.FONT_HERSHEY_SIMPLEX, fontSize+0.2, c, thickness, cv2.LINE_AA)
-
-            #     ang_label_line = 1  # Init line counter for the angle list
-
-            # Angle lines, names, and values
-            # print(f"Writing angles on the image for person {person_id}")
 
             for k, ang in enumerate(angles):
                 if not np.isnan(ang):
@@ -448,26 +442,6 @@ def draw_angles(img, valid_X, valid_Y, valid_angles, valid_X_flipped, keypoints_
                             else:  # Joint angle
                                 app_point, vec1, vec2 = draw_joint_angle(img, ang_coords, flip=1, right_angle=False)
                                 write_angle_on_body(img, ang, app_point, vec1, vec2, dist=40, color=(0, 255, 0), fontSize=fontSize, thickness=thickness)
-
-                        # if 'list' in display_angle_values_on and rom_data:
-                        #     rom_fields = [
-                        #         f"Test: {rom_data.get('test', '')}",
-                        #         f"Ready: {rom_data.get('is_ready', False)}",
-                        #         f"Trunk Angle: {rom_data.get('trunk', 'N/A')}",
-                        #         f"ROM: {rom_data.get('ROM', ['N/A', 'N/A'])}",
-                        #         f"ROM Range: {rom_data.get('rom_range', 'N/A')}",
-                        #         f"Valid Position: {rom_data.get('position_valid', False)}",
-                        #         f"Guidance: {rom_data.get('guidance', '')}",
-                        #         f"Posture: {rom_data.get('posture_message', '')}",
-                        #         f"Progress: {rom_data.get('ready_progress', 0)}%",
-                        #         f"Status: {rom_data.get('status', '')}"
-                        #     ]
-
-    # for line, text in enumerate(rom_fields, start=1):
-    #     text_position = (person_label_position[0], person_label_position[1] + int(line * 40 * fontSize))
-    #     cv2.putText(img, text, text_position, cv2.FONT_HERSHEY_SIMPLEX, fontSize, (0,0,0), thickness+1, cv2.LINE_AA)
-    #     cv2.putText(img, text, text_position, cv2.FONT_HERSHEY_SIMPLEX, fontSize, c, thickness, cv2.LINE_AA)
-
     return img
 
 def draw_segment_angle(img, ang_coords, flip):
@@ -596,3 +570,23 @@ def draw_dotted_line(img, start, direction, length, color=(0, 255, 0), gap=7, do
         line_start = start + direction * i
         line_end = line_start + direction * dot_length
         cv2.line(img, tuple(line_start.astype(int)), tuple(line_end.astype(int)), color, thickness)
+
+def read_rom_data(rom_path):
+    '''
+    Read ROM data from a json file.
+    
+    INPUTS:
+    - rom_path: str. The path to the ROM data json file
+    
+    OUTPUT:
+    - rom_data: dict. The ROM data read from the json file
+    '''
+    import json
+    
+    try:
+        with open(rom_path, 'r') as json_file:
+            rom_data = json.load(json_file)
+        return rom_data
+    except Exception as e:
+        logging.error(f'Error reading ROM data from {rom_path}: {e}')
+        return {}
