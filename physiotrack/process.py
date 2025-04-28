@@ -53,6 +53,8 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 from rtmlib import PoseTracker, BodyWithFeet, Wholebody, Body, Custom
 from deep_sort_realtime.deepsort_tracker import DeepSort
+from physiotrack.process_webpage1 import start_webpage_stream
+from queue import Queue
 
 from physiotrack.Utilities import filter
 from physiotrack.Utilities.common import *
@@ -1328,8 +1330,10 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
         frame_range = [int((time_range[0]-start_time) * frame_rate), int((time_range[1]-start_time) * frame_rate)] if time_range else [0, int(cap.get(cv2.CAP_PROP_FRAME_COUNT))]
         frame_iterator = tqdm(range(*frame_range)) # use a progress bar
     if show_realtime_results:
-        cv2.namedWindow(f'{video_file} PhysioTrack', cv2.WINDOW_NORMAL + cv2.WINDOW_KEEPRATIO)
-        cv2.setWindowProperty(f'{video_file} PhysioTrack', cv2.WND_PROP_ASPECT_RATIO, cv2.WINDOW_FULLSCREEN)
+        # launch web stream for processed frames
+        frame_queue = start_webpage_stream()
+    #     cv2.namedWindow(f'{video_file} PhysioTrack', cv2.WINDOW_NORMAL + cv2.WINDOW_KEEPRATIO)
+    #     cv2.setWindowProperty(f'{video_file} PhysioTrack', cv2.WND_PROP_ASPECT_RATIO, cv2.WINDOW_FULLSCREEN)
 
     # Select the appropriate model based on the model_type
     if pose_model.upper() in ('HALPE_26', 'BODY_WITH_FEET'):
@@ -1555,9 +1559,11 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                     img = draw_angles(img, valid_X, valid_Y, valid_angles, valid_X_flipped, new_keypoints_ids, new_keypoints_names, angle_names, display_angle_values_on=display_angle_values_on, colors=colors, fontSize=fontSize, thickness=thickness)
 
                 if show_realtime_results:
-                    cv2.imshow(f'{video_file} PhysioTrack', img)
-                    if (cv2.waitKey(1) & 0xFF) == ord('q') or (cv2.waitKey(1) & 0xFF) == 27:
-                        break
+                    # send processed frame to webpage stream
+                    try:
+                        frame_queue.put(img, block=False)
+                    except:
+                        pass
                 if save_vid:
                     out_vid.write(img)
                 if save_img:
@@ -1588,7 +1594,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
         if save_img:
             logging.info(f"Processed images saved to {img_output_dir.resolve()}.")
         if show_realtime_results:
-            cv2.destroyAllWindows()
+            frame_queue.put(None)
     
 
     # Post-processing: Interpolate, filter, and save pose and angles
