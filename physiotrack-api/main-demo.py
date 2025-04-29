@@ -1,110 +1,115 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-"""
-Demo script showing how to use PhysioTrack with webcam input.
-This script uses PhysioTrack's process function to handle webcam input and tracking.
-"""
-
-import os
-import sys
+from fastapi import FastAPI, UploadFile, File
+from fastapi.responses import HTMLResponse, StreamingResponse
+import uvicorn
+import cv2
 from pathlib import Path
-import streamlit as st
+import toml
+from threading import Thread
+from queue import Queue
 
-# Import PhysioTrack
-from physiotrack.PhysioTrack import process
+# Load config for pose tracker
+CONFIG_PATH = Path(__file__).parent / 'physiotrack' / 'Demo' / 'Config_demo.toml'
+config_dict = toml.load(CONFIG_PATH)
 
-def main():
-    """Run PhysioTrack analysis on webcam input."""
-    print("Starting PhysioTrack webcam analysis...")
-    
-    # Get the current directory for results
-    current_dir = Path(__file__).resolve().parent
-    result_dir = str(current_dir / 'results/webcam_PhysioTrack')
-    
-    # Create a configuration dictionary for PhysioTrack
-    config_dict = {
-        'logging': {
-            'use_custom_logging': False
-        },
-        'project': {
-            'video_input': ['webcam'],  # Specify webcam input
-            'px_to_m_person_height': 1.70,
-            'visible_side': ['auto'],
-            'time_range': [],  # Analyze continuously
-            'video_dir': str(current_dir),
-            'webcam_id': 0,  # Use default webcam
-            'input_size': [1280, 720],
-            'load_trc_px': '',
-            'compare': False
-        },
-        'process': {
-            'multiperson': False,  # Focus on one person
-            'show_realtime_results': True,
-            'save_vid': True,
-            'save_img': False,
-            'save_pose': True,
-            'calculate_angles': True,
-            'save_angles': True,
-            'result_dir': str(result_dir)
-        },
-        'pose': {
-            'pose_model': 'body_with_feet',
-            'mode': 'performance',
-            'det_frequency': 4,
-            'device': 'auto',
-            'backend': 'auto',
-            'tracking_mode': 'physiotrack',
-            'deepsort_params': """{'max_age':30, 'n_init':3, 'nms_max_overlap':0.8, 'max_cosine_distance':0.3, 'nn_budget':200, 'max_iou_distance':0.8, 'embedder_gpu': True}""",
-            'keypoint_likelihood_threshold': 0.3,
-            'average_likelihood_threshold': 0.5,
-            'keypoint_number_threshold': 0.3,
-            'slowmo_factor': 1
-        },
-        'angles': {
-            'joint_angles': ['Right knee', 'Left knee', 'Right hip', 'Left hip', 'Right shoulder', 'Left shoulder'],
-            'segment_angles': ['Right thigh', 'Left thigh', 'Trunk'],
-            'display_angle_values_on': ['body', 'list'],
-            'fontSize': 0.3,
-            'flip_left_right': True,
-            'correct_segment_angles_with_floor_angle': True
-        },
-        'px_to_meters_conversion': {
-            'to_meters': True,
-            'make_c3d': True,
-            'calib_file': '',
-            'floor_angle': 'auto',
-            'xy_origin': ['auto'],
-            'save_calib': True
-        },
-        'post-processing': {
-            'interpolate': True,
-            'filter': True,
-            'show_graphs': True,
-            'filter_type': 'butterworth',
-            'butterworth': {'order': 4, 'cut_off_frequency': 6},
-            'gaussian': {'sigma_kernel': 1},
-            'loess': {'nb_values_used': 5},
-            'median': {'kernel_size': 3},
-            'interp_gap_smaller_than': 10,
-            'fill_large_gaps_with': 'last_value'
-        }
-    }
+app = FastAPI()
 
-    # Create Streamlit UI
-    st.title("PhysioTrack Webcam Analysis")
-    
-    # Add webcam configuration in sidebar
-    st.sidebar.header("Webcam Configuration")
-    config_dict['project']['webcam_id'] = st.sidebar.number_input("Webcam ID", min_value=0, value=0)
-    
-    # Add a button to start processing
-    if st.button("Start Webcam Analysis"):
-        try:
-            # Call PhysioTrack's process function with webcam configuration
-            process(config_dict)
-        except Exception as e:
-            st.error(f"An error occurred: {str(e)}")
+cap = None
+pose_tracker = None
+angle_dict = None
+keypoints_ids = None
+keypoints_names = None
+model_root = None
+
+@app.get("/", response_class=HTMLResponse)
+async def home():
+    html = """
+    <html><head><title>PhysioTrack Demo</title></head>
+    <body>
+      <h1>PhysioTrack Demo</h1>
+      <ul>
+        <li><a href="/webcam">Webcam Analysis</a></li>
+        <li><a href="/upload">Upload Video</a></li>
+      </ul>
+    </body></html>
+    """
+    return HTMLResponse(html)
+
+@app.get("/webcam", response_class=HTMLResponse)
+async def webcam():
+    global cap, pose_tracker, angle_dict, keypoints_ids, keypoints_names, model_root
+    cap = cv2.VideoCapture(0)
+    pose_tracker, angle_dict, keypoints_ids, keypoints_names, model_root = initialize_pose_tracker(config_dict)
+    html = """
+    <html><head><title>Webcam Analysis</title></head>
+    <body>
+      <h1>Webcam Analysis</h1>
+      <img src="/video_feed" width="800" />
+    </body></html>
+    """
+    return HTMLResponse(html)
+
+@app.get("/upload", response_class=HTMLResponse)
+async def upload_form():
+    html = """
+    <html><head><title>Upload Video</title></head>
+    <body>
+      <h1>Upload Video</h1>
+      <form action="/upload" enctype="multipart/form-data" method="post">
+        <input type="file" name="file" accept="video/*" />
+        <button type="submit">Upload</button>
+      </form>
+    </body></html>
+    """
+    return HTMLResponse(html)
+
+@app.post("/upload", response_class=HTMLResponse)
+async def upload_video(file: UploadFile = File(...)):
+    global cap, pose_tracker, angle_dict, keypoints_ids, keypoints_names, model_root
+    upload_dir = Path(__file__).parent / 'uploads'
+    upload_dir.mkdir(exist_ok=True)
+    filepath = upload_dir / file.filename
+    with open(filepath, "wb") as f:
+        f.write(await file.read())
+    cap = cv2.VideoCapture(str(filepath))
+    pose_tracker, angle_dict, keypoints_ids, keypoints_names, model_root = initialize_pose_tracker(config_dict)
+    html = f"""
+    <html><head><title>Video Uploaded</title></head>
+    <body>
+      <h1>File uploaded: {file.filename}</h1>
+      <a href="/video_analysis">Start Analysis</a>
+    </body></html>
+    """
+    return HTMLResponse(html)
+
+@app.get("/video_analysis", response_class=HTMLResponse)
+async def video_analysis():
+    html = """
+    <html><head><title>Video Analysis</title></head>
+    <body>
+      <h1>Video Analysis</h1>
+      <img src="/video_feed" width="800" />
+    </body></html>
+    """
+    return HTMLResponse(html)
+
+@app.get("/video_feed")
+def video_feed():
+    def gen():
+        while cap is not None and cap.isOpened():
+            ret, frame = cap.read()
+            if not ret:
+                break
+            processed = process_frame(frame, pose_tracker, config_dict, angle_dict, keypoints_ids, keypoints_names, model_root)
+            _, buffer = cv2.imencode('.jpg', processed)
+            frame_bytes = buffer.tobytes()
+            yield (b'--frame\r\n'
+                   b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
+        if cap is not None:
+            cap.release()
+    return StreamingResponse(gen(), media_type='multipart/x-mixed-replace; boundary=frame')
 
 if __name__ == "__main__":
-    main()
+    uvicorn.run("main-demo:app", host="0.0.0.0", port=8000, reload=True)
