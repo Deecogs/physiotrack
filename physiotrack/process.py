@@ -1472,6 +1472,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
             logging.info(f"Processed images saved to {img_output_dir.resolve()}.")
         if show_realtime_results:
             frame_queue.put(None)
+            # cv2.destroyAllWindows()
     
 
     # Post-processing: Interpolate, filter, and save pose and angles
