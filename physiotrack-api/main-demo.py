@@ -2,11 +2,12 @@ import toml
 from pathlib import Path
 from threading import Thread
 from fastapi import FastAPI, UploadFile, File
+from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, StreamingResponse
 from queue import Queue
 import cv2
 from physiotrack import PhysioTrack
-import physiotrack.process_webpage1 as pw
+import physiotrack.process_webpage as pw
 import physiotrack.process as proc
 
 # Path to the demo config
@@ -138,16 +139,43 @@ async def start_webcam():
     config['process']['save_img'] = False
     config['process']['save_pose'] = False
     config['process']['save_angles'] = False
+
     # start processing in background
     Thread(target=PhysioTrack.process, args=(config,), daemon=True).start()
+
     return HTMLResponse(
         """
-        <html><head><title>Webcam Stream</title></head><body>
+        <html>
+        <head>
+            <title>Webcam Stream</title>
+            <style>
+                .container {
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    gap: 20px;
+                }
+                img {
+                    border: 1px solid black;
+                    width: 640px;
+                    height: 480px;
+                }
+            </style>
+        </head>
+        <body>
         <h1>Webcam Stream</h1>
-        <img src="/video_feed" width="800" />
-        </body></html>
+        <div class="container">
+            <div>
+                <h3>Processed Video</h3>
+                <img src="/video_feed" />
+            </div>
+        </div>
+        </body>
+        </html>
         """
     )
+
+# app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 @app.get("/upload", response_class=HTMLResponse)
 async def upload_page():
@@ -195,10 +223,33 @@ async def start_video(filename: str):
     Thread(target=PhysioTrack.process, args=(config,), daemon=True).start()
     return HTMLResponse(
         f"""
-        <html><head><title>Video Analysis</title></head><body>
-        <h1>Video Analysis: {filename}</h1>
-        <img src="/video_feed" width="800" />
-        </body></html>
+        <html>
+        <head>
+            <title>Video Analysis</title>
+            <style>
+            .container {{
+                display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    gap: 20px;
+                }}
+                img {{
+                    border: 1px solid black;
+                    width: 640px;
+                    height: 480px;
+                }}
+            </style>
+        </head>
+        <body>
+            <h1>Video Analysis: {filename}</h1>
+            <div class="container">
+                <div>
+                    <h3>Processed Video</h3>
+                    <img src="/video_feed" />
+                </div>
+            </div>
+        </body>
+        </html>
         """
     )
 

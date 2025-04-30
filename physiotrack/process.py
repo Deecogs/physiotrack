@@ -53,7 +53,7 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 from rtmlib import PoseTracker, BodyWithFeet, Wholebody, Body, Custom
 from deep_sort_realtime.deepsort_tracker import DeepSort
-from physiotrack.process_webpage1 import start_webpage_stream
+from physiotrack.process_webpage import start_webpage_stream
 from queue import Queue
 
 from physiotrack.Utilities import filter
