@@ -6,6 +6,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, StreamingResponse
 from queue import Queue
 import cv2
+import json
 from physiotrack import PhysioTrack
 import physiotrack.process_webpage as pw
 import physiotrack.process as proc
@@ -138,7 +139,7 @@ async def start_webcam():
     config['process']['save_vid'] = False
     config['process']['save_img'] = False
     config['process']['save_pose'] = False
-    config['process']['save_angles'] = False
+    config['process']['save_angles'] = True
 
     # start processing in background
     Thread(target=PhysioTrack.process, args=(config,), daemon=True).start()
@@ -218,7 +219,7 @@ async def start_video(filename: str):
     config['process']['save_vid'] = False
     config['process']['save_img'] = False
     config['process']['save_pose'] = False
-    config['process']['save_angles'] = False
+    config['process']['save_angles'] = True
     # start processing in background
     Thread(target=PhysioTrack.process, args=(config,), daemon=True).start()
     return HTMLResponse(

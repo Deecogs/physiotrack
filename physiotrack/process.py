@@ -719,6 +719,21 @@ def make_trc_with_trc_data(trc_data, trc_path, fps=30):
         [trc_o.write(line+'\n') for line in header_trc]
         trc_data.to_csv(trc_o, sep='\t', index=True, header=None, lineterminator='\n')
 
+def create_mot_header(angle_names, nRows, nColumns):
+    header = [
+        'Coordinates',
+        'version=1',
+        f'nRows={nRows}',
+        f'nColumns={nColumns}',
+        'inDegrees=yes',
+        '',
+        'Units are S.I. units (second, meters, Newtons, ...)',
+        "If the header above contains a line with 'inDegrees', this indicates whether rotational values are in degrees (yes) or radians (no).",
+        '',
+        'endheader',
+        'time\t' + '\t'.join(angle_names)
+    ]
+    return '\n'.join(header)
 
 def make_mot_with_angles(angles, time, mot_path):
     '''
@@ -1325,7 +1340,16 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
     all_frames_X, all_frames_Y, all_frames_scores, all_frames_angles = [], [], [], []
     frame_processing_times = []
     frame_count = 0
-    while cap.isOpened():
+    frame_times = []
+    mot_filename = output_dir / f'streams_angles_{video_file_stem}.mot'
+    mot_file = open(mot_filename, 'w')
+    if calculate_angles:
+        nRows = len(frame_iterator)
+        nColumns = len(angle_names) + 1  # +1 for time column
+        mot_file.write(create_mot_header(angle_names, nRows, nColumns))
+        mot_file.write('\n')
+
+    while cap.isOpened():    
         # Skip to the starting frame
         if frame_count < frame_range[0] and not load_trc_px:
             cap.read()
@@ -1351,6 +1375,8 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                 cv2.putText(frame, f"Press 'q' to quit", (cam_width-int(400*fontSize), cam_height-20), cv2.FONT_HERSHEY_SIMPLEX, fontSize+0.2, (255,255,255), thickness+1, cv2.LINE_AA)
                 cv2.putText(frame, f"Press 'q' to quit", (cam_width-int(400*fontSize), cam_height-20), cv2.FONT_HERSHEY_SIMPLEX, fontSize+0.2, (0,0,255), thickness, cv2.LINE_AA)
 
+            # Calculate video time based on frame number and FPS
+            current_time_mot = frame_count / fps
 
             # Retrieve pose or Estimate pose and track people
             if load_trc_px: 
@@ -1422,6 +1448,57 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                         person_angles.append(ang)
                     valid_angles.append(person_angles)
                     valid_X_flipped.append(person_X_flipped)
+
+                    # Calculate current time
+                    # current_time = (datetime.now() - start_time).total_seconds()
+                    frame_times.append(current_time_mot)
+
+                    # Initialize ROM data if first frame
+                    if frame_count == 1:
+                        rom_data = {}
+                        trunk_idx = angle_names.index('trunk') if 'trunk' in angle_names else None
+                        if trunk_idx is not None:
+                            running_min = person_angles[trunk_idx]
+                            running_max = person_angles[trunk_idx]
+                            running_rom = 0
+                        else:
+                            running_min = 0
+                            running_max = 0
+                            running_rom = 0
+
+                    # Update running min/max for trunk angle
+                    if trunk_idx is not None and not np.isnan(person_angles[trunk_idx]):
+                        running_min = min(running_min, person_angles[trunk_idx])
+                        running_max = max(running_max, person_angles[trunk_idx])
+                        running_rom = running_max - running_min
+
+                    # Create ROM data entry for this frame
+                    time_val = f"{current_time_mot:.3f}"
+                    rom_data[time_val] = {
+                        "test": "lb-flexion",
+                        "is_ready": True,
+                        "angles": {angle_names[i]: float(np.round(angle, 1)) for i, angle in enumerate(person_angles) if not np.isnan(angle)},
+                        "ROM": [float(running_min), float(running_max)],
+                        "rom_range": float(running_rom),
+                        "position_valid": True,
+                        "guidance": "Good posture",
+                        "posture_message": "Good posture",
+                        "ready_progress": 100,
+                        "status": "success"
+                    }
+
+                    # Save ROM data periodically
+                    if frame_count % 10 == 0:  # Save every 10 frames
+                        rom_path = output_dir / f"stream_rom_{video_file.stem}.json"
+                        with open(rom_path, 'w') as f:
+                            json.dump(rom_data, f, indent=4)
+
+                    # Write angles for each person
+                    for person_idx, person_angles in enumerate(valid_angles):
+                        if not np.isnan(person_angles).all():  # Only write if we have valid angles
+                            line = f"{current_time_mot:.6f}\t" + "\t".join(f"{angle:.6f}" for angle in person_angles)
+                            mot_file.write(line + '\n')
+
                 valid_X.append(person_X)
                 valid_Y.append(person_Y)
                 valid_scores.append(person_scores)
@@ -1436,6 +1513,9 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                     img = draw_angles(img, valid_X, valid_Y, valid_angles, valid_X_flipped, new_keypoints_ids, new_keypoints_names, angle_names, display_angle_values_on=display_angle_values_on, colors=colors, fontSize=fontSize, thickness=thickness)
 
                 if show_realtime_results:
+                    # cv2.imshow(f'{video_file} PhysioTrack', img)
+                    # if (cv2.waitKey(1) & 0xFF) == ord('q') or (cv2.waitKey(1) & 0xFF) == 27:
+                        # break
                     # send processed frame to webpage stream
                     try:
                         frame_queue.put(img, block=False)
@@ -1458,6 +1538,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
 
 
         # End of the video is reached
+        mot_file.close()
         cap.release()
         logging.info(f"Video processing completed.")
         if save_vid:
@@ -1734,11 +1815,11 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                 all_frames_angles_person = all_frames_angles_person[all_frames_angles_person_filt.columns]
 
                 # Add floor_angle_estim to segment angles
-                if correct_segment_angles_with_floor_angle and to_meters: 
-                    logging.info(f'Correcting segment angles by removing the {round(np.degrees(floor_angle_estim),2)}° floor angle.')
-                    for ang_name in all_frames_angles_person_filt.columns:
-                        if 'horizontal' in angle_dict[ang_name][1]:
-                            all_frames_angles_person_filt[ang_name] -= np.degrees(floor_angle_estim)
+                # if correct_segment_angles_with_floor_angle and to_meters: 
+                #     logging.info(f'Correcting segment angles by removing the {round(np.degrees(floor_angle_estim),2)}° floor angle.')
+                #     for ang_name in all_frames_angles_person_filt.columns:
+                #         if 'horizontal' in angle_dict[ang_name][1]:
+                #             all_frames_angles_person_filt[ang_name] -= np.degrees(floor_angle_estim)
 
                 # Build mot file
                 angle_data = make_mot_with_angles(all_frames_angles_person_filt, all_frames_time, str(angles_path_person))
