@@ -1205,6 +1205,8 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
     pose_output_path = output_dir / f'{output_dir_name}_px.trc'
     pose_output_path_m = output_dir / f'{output_dir_name}_m.trc'
     angles_output_path = output_dir / f'{output_dir_name}_angles.mot'
+    stream_mot_path = output_dir / f'stream_{output_dir_name}_angles.mot'
+    stream_angles_output_path = output_dir / f'stream_{output_dir_name}_angles.json'
     output_dir.mkdir(parents=True, exist_ok=True)
     if save_img:
         img_output_dir.mkdir(parents=True, exist_ok=True)
@@ -1341,7 +1343,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
     frame_processing_times = []
     frame_count = 0
     frame_times = []
-    mot_filename = output_dir / f'streams_angles_{video_file_stem}.mot'
+    mot_filename = stream_mot_path
     mot_file = open(mot_filename, 'w')
     if calculate_angles:
         nRows = len(frame_iterator)
@@ -1489,7 +1491,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
 
                     # Save ROM data periodically
                     if frame_count % 10 == 0:  # Save every 10 frames
-                        rom_path = output_dir / f"stream_rom_{video_file.stem}.json"
+                        rom_path = stream_angles_output_path
                         with open(rom_path, 'w') as f:
                             json.dump(rom_data, f, indent=4)
 

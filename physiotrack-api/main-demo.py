@@ -7,6 +7,7 @@ from fastapi.responses import HTMLResponse, StreamingResponse
 from queue import Queue
 import cv2
 import json
+import time
 from physiotrack import PhysioTrack
 import physiotrack.process_webpage as pw
 import physiotrack.process as proc
@@ -145,32 +146,177 @@ async def start_webcam():
     Thread(target=PhysioTrack.process, args=(config,), daemon=True).start()
 
     return HTMLResponse(
-        """
+        f"""
         <html>
         <head>
             <title>Webcam Stream</title>
             <style>
-                .container {
+                .container {{
                     display: flex;
                     justify-content: center;
-                    align-items: center;
+                    align-items: flex-start;
                     gap: 20px;
-                }
-                img {
+                    padding: 20px;
+                }}
+                .video-container {{
+                    flex: 2;
+                    min-width: 800px;
+                }}
+                .data-container {{
+                    flex: 1;
+                    min-width: 300px;
+                    border: 1px solid #ccc;
+                    padding: 15px;
+                    border-radius: 5px;
+                    background: white;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                }}
+                .data-item {{
+                    margin-bottom: 15px;
+                    padding: 12px;
+                    background: #f8f9fa;
+                    border-radius: 8px;
+                    border: 1px solid #e9ecef;
+                }}
+                .data-label {{
+                    font-weight: bold;
+                    color: #6c757d;
+                    margin-bottom: 8px;
+                    display: block;
+                }}
+                .data-value {{
+                    color: #212529;
+                }}
+                .angles-container, .rom-container {{
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 10px;
+                    margin-top: 8px;
+                }}
+                .angle-item, .rom-item {{
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    gap: 4px;
+                }}
+                .angle-label, .rom-label {{
+                    font-weight: bold;
+                    color: #6c757d;
+                }}
+                .angle-value, .rom-value {{
+                    color: #212529;
+                }}
+                img {{
                     border: 1px solid black;
-                    width: 640px;
-                    height: 480px;
-                }
+                    width: 100%;
+                    height: auto;
+                    max-height: 720px;
+                }}
+                .text-center {{
+                    text-align: center;
+                }}
+                .text-muted {{
+                    color: #6c757d;
+                }}
             </style>
         </head>
         <body>
-        <h1>Webcam Stream</h1>
-        <div class="container">
-            <div>
-                <h3>Processed Video</h3>
-                <img src="/video_feed" />
+            <h1>Webcam Stream</h1>
+            <div class="container">
+                <div class="video-container">
+                    <h3>Processed Video</h3>
+                    <img src="/video_feed" />
+                </div>
+                <div class="data-container">
+                    <h3>Real-time Data</h3>
+                    <div id="realTimeData">
+                        <div class="text-center text-muted">Waiting for data...</div>
+                    </div>
+                </div>
             </div>
-        </div>
+            <script>
+                // Function to update real-time data display
+                function updateRealTimeData() {{
+                    const eventSource = new EventSource('/json_feed');
+                    
+                    eventSource.onmessage = function(event) {{
+                        try {{
+                            const data = JSON.parse(event.data);
+                            const realTimeDataDiv = document.getElementById('realTimeData');
+                            realTimeDataDiv.innerHTML = '';
+                            
+                            // Display frame data
+                            if (data.frame_data) {{
+                                const frameDiv = document.createElement('div');
+                                frameDiv.className = 'data-item';
+                                frameDiv.innerHTML = `
+                                    <div class="data-label">Frame Number:</div>
+                                    <div class="data-value">${{data.frame_data.frame_number}}</div>
+                                `;
+                                realTimeDataDiv.appendChild(frameDiv);
+                            }}
+                            
+                            // Display angles in a more readable format
+                            if (data.angles) {{
+                                const anglesDiv = document.createElement('div');
+                                anglesDiv.className = 'data-item';
+                                anglesDiv.innerHTML = `
+                                    <div class="data-label">Angles:</div>
+                                    <div class="data-value">
+                                        <div class="angles-container">
+                                            ${{
+                                                Object.entries(data.angles).map(([key, value]) => `
+                                                    <div class="angle-item">
+                                                        <span class="angle-label">${{key}}:</span>
+                                                        <span class="angle-value">${{value.toFixed(1)}}°</span>
+                                                    </div>
+                                                `).join('')
+                                            }}
+                                        </div>
+                                    </div>
+                                `;
+                                realTimeDataDiv.appendChild(anglesDiv);
+                            }}
+                            
+                            // Display ROM
+                            if (data.rom) {{
+                                const romDiv = document.createElement('div');
+                                romDiv.className = 'data-item';
+                                romDiv.innerHTML = `
+                                    <div class="data-label">ROM:</div>
+                                    <div class="data-value">
+                                        <div class="rom-container">
+                                            ${{
+                                                Object.entries(data.rom).map(([key, value]) => `
+                                                    <div class="rom-item">
+                                                        <span class="rom-label">${{key}}:</span>
+                                                        <span class="rom-value">${{value.toFixed(1)}}°</span>
+                                                    </div>
+                                                `).join('')
+                                            }}
+                                        </div>
+                                    </div>
+                                `;
+                                realTimeDataDiv.appendChild(romDiv);
+                            }}
+                        }} catch (error) {{
+                            console.error('Error processing real-time data:', error);
+                        }}
+                    }};
+                    
+                    eventSource.onerror = function() {{
+                        console.error('EventSource connection error');
+                        eventSource.close();
+                        // Reconnect after 1 second
+                        setTimeout(updateRealTimeData, 1000);
+                    }};
+                }}
+
+                // Start updating real-time data when the page loads
+                window.onload = function() {{
+                    updateRealTimeData();
+                }};
+            </script>
         </body>
         </html>
         """
@@ -228,27 +374,172 @@ async def start_video(filename: str):
         <head>
             <title>Video Analysis</title>
             <style>
-            .container {{
-                display: flex;
+                .container {{
+                    display: flex;
                     justify-content: center;
-                    align-items: center;
+                    align-items: flex-start;
                     gap: 20px;
+                    padding: 20px;
+                }}
+                .video-container {{
+                    flex: 2;
+                    min-width: 800px;
+                }}
+                .data-container {{
+                    flex: 1;
+                    min-width: 300px;
+                    border: 1px solid #ccc;
+                    padding: 15px;
+                    border-radius: 5px;
+                    background: white;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                }}
+                .data-item {{
+                    margin-bottom: 15px;
+                    padding: 12px;
+                    background: #f8f9fa;
+                    border-radius: 8px;
+                    border: 1px solid #e9ecef;
+                }}
+                .data-label {{
+                    font-weight: bold;
+                    color: #6c757d;
+                    margin-bottom: 8px;
+                    display: block;
+                }}
+                .data-value {{
+                    color: #212529;
+                }}
+                .angles-container, .rom-container {{
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 10px;
+                    margin-top: 8px;
+                }}
+                .angle-item, .rom-item {{
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    gap: 4px;
+                }}
+                .angle-label, .rom-label {{
+                    font-weight: bold;
+                    color: #6c757d;
+                }}
+                .angle-value, .rom-value {{
+                    color: #212529;
                 }}
                 img {{
                     border: 1px solid black;
-                    width: 640px;
-                    height: 480px;
+                    width: 100%;
+                    height: auto;
+                    max-height: 720px;
+                }}
+                .text-center {{
+                    text-align: center;
+                }}
+                .text-muted {{
+                    color: #6c757d;
                 }}
             </style>
         </head>
         <body>
             <h1>Video Analysis: {filename}</h1>
             <div class="container">
-                <div>
+                <div class="video-container">
                     <h3>Processed Video</h3>
                     <img src="/video_feed" />
                 </div>
+                <div class="data-container">
+                    <h3>Real-time Data</h3>
+                    <div id="realTimeData">
+                        <div class="text-center text-muted">Waiting for data...</div>
+                    </div>
+                </div>
             </div>
+            <script>
+                // Function to update real-time data display
+                function updateRealTimeData() {{
+                    const eventSource = new EventSource('/json_feed');
+                    
+                    eventSource.onmessage = function(event) {{
+                        try {{
+                            const data = JSON.parse(event.data);
+                            const realTimeDataDiv = document.getElementById('realTimeData');
+                            realTimeDataDiv.innerHTML = '';
+                            
+                            // Display frame data
+                            if (data.frame_data) {{
+                                const frameDiv = document.createElement('div');
+                                frameDiv.className = 'data-item';
+                                frameDiv.innerHTML = `
+                                    <div class="data-label">Frame Number:</div>
+                                    <div class="data-value">${{data.frame_data.frame_number}}</div>
+                                `;
+                                realTimeDataDiv.appendChild(frameDiv);
+                            }}
+                            
+                            // Display angles in a more readable format
+                            if (data.angles) {{
+                                const anglesDiv = document.createElement('div');
+                                anglesDiv.className = 'data-item';
+                                anglesDiv.innerHTML = `
+                                    <div class="data-label">Angles:</div>
+                                    <div class="data-value">
+                                        <div class="angles-container">
+                                            ${{
+                                                Object.entries(data.angles).map(([key, value]) => `
+                                                    <div class="angle-item">
+                                                        <span class="angle-label">${{key}}:</span>
+                                                        <span class="angle-value">${{value.toFixed(1)}}°</span>
+                                                    </div>
+                                                `).join('')
+                                            }}
+                                        </div>
+                                    </div>
+                                `;
+                                realTimeDataDiv.appendChild(anglesDiv);
+                            }}
+                            
+                            // Display ROM
+                            if (data.rom) {{
+                                const romDiv = document.createElement('div');
+                                romDiv.className = 'data-item';
+                                romDiv.innerHTML = `
+                                    <div class="data-label">ROM:</div>
+                                    <div class="data-value">
+                                        <div class="rom-container">
+                                            ${{
+                                                Object.entries(data.rom).map(([key, value]) => `
+                                                    <div class="rom-item">
+                                                        <span class="rom-label">${{key}}:</span>
+                                                        <span class="rom-value">${{value.toFixed(1)}}°</span>
+                                                    </div>
+                                                `).join('')
+                                            }}
+                                        </div>
+                                    </div>
+                                `;
+                                realTimeDataDiv.appendChild(romDiv);
+                            }}
+                        }} catch (error) {{
+                            console.error('Error processing real-time data:', error);
+                        }}
+                    }};
+                    
+                    eventSource.onerror = function() {{
+                        console.error('EventSource connection error');
+                        eventSource.close();
+                        // Reconnect after 1 second
+                        setTimeout(updateRealTimeData, 1000);
+                    }};
+                }}
+
+                // Start updating real-time data when the page loads
+                window.onload = function() {{
+                    updateRealTimeData();
+                }};
+            </script>
         </body>
         </html>
         """
@@ -266,6 +557,47 @@ def video_feed():
             yield (b'--frame\r\n'
                    b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
     return StreamingResponse(gen(), media_type='multipart/x-mixed-replace; boundary=frame')
+
+@app.get("/json_feed")
+def json_feed():
+    def gen():
+        # Get the results directory
+        results_dir = Path(__file__).parent / "results"
+        
+        while True:
+            try:
+                # Refresh the list of stream files
+                stream_files = list(results_dir.glob("**/*stream*.json"))
+                
+                if stream_files:
+                    # Get the latest stream file
+                    stream_file = max(stream_files, key=lambda p: p.stat().st_mtime)
+                    
+                    # Try to read the file with a small timeout
+                    try:
+                        with open(stream_file, 'r') as f:
+                            data = json.load(f)
+                            # Get the latest frame data
+                            latest_frame = max(data.keys())
+                            frame_data = data[latest_frame]
+                            
+                            # Convert to JSON string
+                            json_str = json.dumps(frame_data)
+                            yield f"data: {json_str}\n\n"
+                    except (json.JSONDecodeError, OSError) as e:
+                        # If file is being written to, wait and try again
+                        yield f"data: {{\"warning\": \"File is being updated\"}}\n\n"
+                        time.sleep(0.1)
+                        continue
+                else:
+                    yield f"data: {{\"error\": \"No stream files found\"}}\n\n"
+                
+                time.sleep(0.1)  # Small delay to prevent excessive CPU usage
+            except Exception as e:
+                yield f"data: {{\"error\": \"{str(e)}\"}}\n\n"
+                time.sleep(1)
+
+    return StreamingResponse(gen(), media_type='text/event-stream')
 
 if __name__ == "__main__":
     import uvicorn
