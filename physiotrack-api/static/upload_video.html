@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Video</title>
+</head>
+<body>
+    <h1>Upload Video</h1>
+    <form action="http://localhost:8002/upload-video/" method="post" enctype="multipart/form-data">
+        <input type="file" name="file" accept="video/*" required>
+        <input type="text" name="height" value="1.7" placeholder="Height in meters">
+        <input type="text" name="visible_side" value="auto" placeholder="Visible side">
+        <input type="text" name="multiperson" value="false" placeholder="Multiperson">
+        <input type="text" name="mode" value="performance" placeholder="Mode">
+        <input type="text" name="test_name" value="lower_back_flexion" placeholder="Test Name">
+        <button type="submit">Upload</button>
+    </form>
+</body>
+</html>

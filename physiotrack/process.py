@@ -53,10 +53,13 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 from rtmlib import PoseTracker, BodyWithFeet, Wholebody, Body, Custom
 from deep_sort_realtime.deepsort_tracker import DeepSort
+from physiotrack.process_webpage import start_webpage_stream
+from queue import Queue
 
 from physiotrack.Utilities import filter
 from physiotrack.Utilities.common import *
 from physiotrack.Utilities.skeletons import *
+from physiotrack.Utilities.common import angle_dict
 
 DEFAULT_MASS = 70
 DEFAULT_HEIGHT = 1.7
@@ -67,8 +70,8 @@ __copyright__ = "Copyright 2023, PhysioTrack"
 __license__ = "BSD 3-Clause License"
 __version__ = "0.1.0"
 
+# (The rest of the original code remains unchanged)
 
-# FUNCTIONS
 def setup_webcam(webcam_id, save_vid, vid_output_path, input_size):
     '''
     Set up webcam capture with OpenCV.
@@ -147,7 +150,7 @@ def setup_video(video_file_path, save_vid, vid_output_path):
         out_vid = cv2.VideoWriter(str(vid_output_path.absolute()), fourcc, fps, (cam_width, cam_height))
     
     return cap, out_vid, cam_width, cam_height, fps
-
+    
 
 def setup_backend_device(backend='auto', device='auto'):
     '''
@@ -716,6 +719,21 @@ def make_trc_with_trc_data(trc_data, trc_path, fps=30):
         [trc_o.write(line+'\n') for line in header_trc]
         trc_data.to_csv(trc_o, sep='\t', index=True, header=None, lineterminator='\n')
 
+def create_mot_header(angle_names, nRows, nColumns):
+    header = [
+        'Coordinates',
+        'version=1',
+        f'nRows={nRows}',
+        f'nColumns={nColumns}',
+        'inDegrees=yes',
+        '',
+        'Units are S.I. units (second, meters, Newtons, ...)',
+        "If the header above contains a line with 'inDegrees', this indicates whether rotational values are in degrees (yes) or radians (no).",
+        '',
+        'endheader',
+        'time\t' + '\t'.join(angle_names)
+    ]
+    return '\n'.join(header)
 
 def make_mot_with_angles(angles, time, mot_path):
     '''
@@ -1187,6 +1205,8 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
     pose_output_path = output_dir / f'{output_dir_name}_px.trc'
     pose_output_path_m = output_dir / f'{output_dir_name}_m.trc'
     angles_output_path = output_dir / f'{output_dir_name}_angles.mot'
+    stream_mot_path = output_dir / f'stream_{output_dir_name}_angles.mot'
+    stream_angles_output_path = output_dir / f'stream_{output_dir_name}_angles.json'
     output_dir.mkdir(parents=True, exist_ok=True)
     if save_img:
         img_output_dir.mkdir(parents=True, exist_ok=True)
@@ -1204,8 +1224,10 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
         frame_range = [int((time_range[0]-start_time) * frame_rate), int((time_range[1]-start_time) * frame_rate)] if time_range else [0, int(cap.get(cv2.CAP_PROP_FRAME_COUNT))]
         frame_iterator = tqdm(range(*frame_range)) # use a progress bar
     if show_realtime_results:
-        cv2.namedWindow(f'{video_file} PhysioTrack', cv2.WINDOW_NORMAL + cv2.WINDOW_KEEPRATIO)
-        cv2.setWindowProperty(f'{video_file} PhysioTrack', cv2.WND_PROP_ASPECT_RATIO, cv2.WINDOW_FULLSCREEN)
+        # launch web stream for processed frames
+        frame_queue = start_webpage_stream()
+    #     cv2.namedWindow(f'{video_file} PhysioTrack', cv2.WINDOW_NORMAL + cv2.WINDOW_KEEPRATIO)
+    #     cv2.setWindowProperty(f'{video_file} PhysioTrack', cv2.WND_PROP_ASPECT_RATIO, cv2.WINDOW_FULLSCREEN)
 
     # Select the appropriate model based on the model_type
     if pose_model.upper() in ('HALPE_26', 'BODY_WITH_FEET'):
@@ -1320,7 +1342,16 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
     all_frames_X, all_frames_Y, all_frames_scores, all_frames_angles = [], [], [], []
     frame_processing_times = []
     frame_count = 0
-    while cap.isOpened():
+    frame_times = []
+    mot_filename = stream_mot_path
+    mot_file = open(mot_filename, 'w')
+    if calculate_angles:
+        nRows = len(frame_iterator)
+        nColumns = len(angle_names) + 1  # +1 for time column
+        mot_file.write(create_mot_header(angle_names, nRows, nColumns))
+        mot_file.write('\n')
+
+    while cap.isOpened():    
         # Skip to the starting frame
         if frame_count < frame_range[0] and not load_trc_px:
             cap.read()
@@ -1346,6 +1377,8 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                 cv2.putText(frame, f"Press 'q' to quit", (cam_width-int(400*fontSize), cam_height-20), cv2.FONT_HERSHEY_SIMPLEX, fontSize+0.2, (255,255,255), thickness+1, cv2.LINE_AA)
                 cv2.putText(frame, f"Press 'q' to quit", (cam_width-int(400*fontSize), cam_height-20), cv2.FONT_HERSHEY_SIMPLEX, fontSize+0.2, (0,0,255), thickness, cv2.LINE_AA)
 
+            # Calculate video time based on frame number and FPS
+            current_time_mot = frame_count / fps
 
             # Retrieve pose or Estimate pose and track people
             if load_trc_px: 
@@ -1417,6 +1450,57 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                         person_angles.append(ang)
                     valid_angles.append(person_angles)
                     valid_X_flipped.append(person_X_flipped)
+
+                    # Calculate current time
+                    # current_time = (datetime.now() - start_time).total_seconds()
+                    frame_times.append(current_time_mot)
+
+                    # Initialize ROM data if first frame
+                    if frame_count == 1:
+                        rom_data = {}
+                        trunk_idx = angle_names.index('trunk') if 'trunk' in angle_names else None
+                        if trunk_idx is not None:
+                            running_min = person_angles[trunk_idx]
+                            running_max = person_angles[trunk_idx]
+                            running_rom = 0
+                        else:
+                            running_min = 0
+                            running_max = 0
+                            running_rom = 0
+
+                    # Update running min/max for trunk angle
+                    if trunk_idx is not None and not np.isnan(person_angles[trunk_idx]):
+                        running_min = min(running_min, person_angles[trunk_idx])
+                        running_max = max(running_max, person_angles[trunk_idx])
+                        running_rom = running_max - running_min
+
+                    # Create ROM data entry for this frame
+                    time_val = f"{current_time_mot:.3f}"
+                    rom_data[time_val] = {
+                        "test": "lb-flexion",
+                        "is_ready": True,
+                        "angles": {angle_names[i]: float(np.round(angle, 1)) for i, angle in enumerate(person_angles) if not np.isnan(angle)},
+                        "ROM": [float(running_min), float(running_max)],
+                        "rom_range": float(running_rom),
+                        "position_valid": True,
+                        "guidance": "Good posture",
+                        "posture_message": "Good posture",
+                        "ready_progress": 100,
+                        "status": "success"
+                    }
+
+                    # Save ROM data periodically
+                    if frame_count % 10 == 0:  # Save every 10 frames
+                        rom_path = stream_angles_output_path
+                        with open(rom_path, 'w') as f:
+                            json.dump(rom_data, f, indent=4)
+
+                    # Write angles for each person
+                    for person_idx, person_angles in enumerate(valid_angles):
+                        if not np.isnan(person_angles).all():  # Only write if we have valid angles
+                            line = f"{current_time_mot:.6f}\t" + "\t".join(f"{angle:.6f}" for angle in person_angles)
+                            mot_file.write(line + '\n')
+
                 valid_X.append(person_X)
                 valid_Y.append(person_Y)
                 valid_scores.append(person_scores)
@@ -1431,9 +1515,14 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                     img = draw_angles(img, valid_X, valid_Y, valid_angles, valid_X_flipped, new_keypoints_ids, new_keypoints_names, angle_names, display_angle_values_on=display_angle_values_on, colors=colors, fontSize=fontSize, thickness=thickness)
 
                 if show_realtime_results:
-                    cv2.imshow(f'{video_file} PhysioTrack', img)
-                    if (cv2.waitKey(1) & 0xFF) == ord('q') or (cv2.waitKey(1) & 0xFF) == 27:
-                        break
+                    # cv2.imshow(f'{video_file} PhysioTrack', img)
+                    # if (cv2.waitKey(1) & 0xFF) == ord('q') or (cv2.waitKey(1) & 0xFF) == 27:
+                        # break
+                    # send processed frame to webpage stream
+                    try:
+                        frame_queue.put(img, block=False)
+                    except:
+                        pass
                 if save_vid:
                     out_vid.write(img)
                 if save_img:
@@ -1451,6 +1540,7 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
 
 
         # End of the video is reached
+        mot_file.close()
         cap.release()
         logging.info(f"Video processing completed.")
         if save_vid:
@@ -1464,7 +1554,8 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
         if save_img:
             logging.info(f"Processed images saved to {img_output_dir.resolve()}.")
         if show_realtime_results:
-            cv2.destroyAllWindows()
+            frame_queue.put(None)
+            # cv2.destroyAllWindows()
     
 
     # Post-processing: Interpolate, filter, and save pose and angles
@@ -1726,11 +1817,11 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                 all_frames_angles_person = all_frames_angles_person[all_frames_angles_person_filt.columns]
 
                 # Add floor_angle_estim to segment angles
-                if correct_segment_angles_with_floor_angle and to_meters: 
-                    logging.info(f'Correcting segment angles by removing the {round(np.degrees(floor_angle_estim),2)}° floor angle.')
-                    for ang_name in all_frames_angles_person_filt.columns:
-                        if 'horizontal' in angle_dict[ang_name][1]:
-                            all_frames_angles_person_filt[ang_name] -= np.degrees(floor_angle_estim)
+                # if correct_segment_angles_with_floor_angle and to_meters: 
+                #     logging.info(f'Correcting segment angles by removing the {round(np.degrees(floor_angle_estim),2)}° floor angle.')
+                #     for ang_name in all_frames_angles_person_filt.columns:
+                #         if 'horizontal' in angle_dict[ang_name][1]:
+                #             all_frames_angles_person_filt[ang_name] -= np.degrees(floor_angle_estim)
 
                 # Build mot file
                 angle_data = make_mot_with_angles(all_frames_angles_person_filt, all_frames_time, str(angles_path_person))
@@ -1745,3 +1836,4 @@ def process_fun(config_dict, video_file, time_range, frame_rate, result_dir):
                 if show_plots:
                     all_frames_angles_person.insert(0, 't', all_frames_time)
                     angle_plots(all_frames_angles_person, angle_data, i) # i = current person
+                    
